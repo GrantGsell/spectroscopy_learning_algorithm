@@ -3,18 +3,20 @@ import csv
 import matplotlib.pyplot as plt
 from PIL import Image as img
 import matplotlib as mpl
-mpl.use('TkAgg')
+#mpl.use('TkAgg')
+plt.ioff()
 
 
 class ImagePrediction:
 
-    def __init__(self, num_classes):
-        self.num_classes = num_classes
+    def __init__(self, auto_flag):
+        self.num_classes = None
         self.parameter_file_name = 'parameter_values.csv'
         self.num_row_pixels = 40
         self.num_col_pixels = 40
         self.img_height = None
         self.img_width = None
+        self.auto_flag = auto_flag
 
     '''
     Name       :
@@ -23,12 +25,12 @@ class ImagePrediction:
     Return     :
     Notes      :
     '''
-    def top_image_prediction(self, new_image_name, auto_flag: bool = False):
+    def top_image_prediction(self, new_image_name):
         # Read in the parameter data
         parameters = self.read_parameters()
 
         # Partition and Prediction for new image
-        image_ht = self.new_image_partition_and_prediction(new_image_name, parameters, auto_flag)
+        image_ht = self.new_image_partition_and_prediction(new_image_name, parameters, self.auto_flag)
 
         # Convert Prediction into a binary matrix
         binary_prediction_matrix = self.create_binary_matrix(image_ht, self.img_height // self.num_row_pixels, self.img_width // self.num_col_pixels)
@@ -50,9 +52,9 @@ class ImagePrediction:
     '''
     def read_parameters(self):
         data = np.loadtxt(open(self.parameter_file_name), delimiter=",", dtype='float32')
-        parameters = data[0 : -1]
-        lambda_constant = data[-1]
-        return parameters, lambda_constant
+        parameters = data[:, :]
+        self.num_classes = (np.shape(parameters))[0]
+        return parameters
 
 
     '''
@@ -66,10 +68,13 @@ class ImagePrediction:
         # Create a dictionary to hold the image data
         image_ht = dict()
 
-        # Read in the new image and display it
+        # Read in the new image
         new_image = img.open(file_name)
         new_image.load()
-        new_image.show()
+
+        # Display the image if not set to automatic
+        if not auto_flag:
+            new_image.show()
 
         # Obtain image height, width
         height = new_image.height
@@ -317,7 +322,7 @@ class ImagePrediction:
         file_name = 'imaging_matrix.csv'
 
         # Open the current file and truncate the data
-        imaging_matrix_file = open(file_name, 'w+')
+        imaging_matrix_file = open(file_name, 'w+', newline='')
 
         # Write parameter values
         with imaging_matrix_file:
