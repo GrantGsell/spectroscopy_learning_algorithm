@@ -1,10 +1,6 @@
 import numpy as np
 import csv
-import matplotlib.pyplot as plt
 from scipy import optimize as optim
-from PIL import Image as img
-import matplotlib as mpl
-mpl.use('TkAgg')
 
 
 class LearningAlgorithm:
