@@ -16,7 +16,8 @@ class DataCollection:
         self.num_examples_per_class = None
         self.class_ht = None
         self.class_data_name = "class_data.csv"
-        self.total_number_of_examples = None
+        self.total_number_of_examples = 0
+        self.csv_data_base_name = 'input_and_output_data_test.csv'
 
 
     '''
@@ -37,11 +38,13 @@ class DataCollection:
         class_num = self.batch_vs_individual_prompt()
 
         # Partition the image(s) and write data to csv
-        
+        self.partition_image_top(class_num, file_name, file_extension)
 
-        # Update class data
+        # Display post data collection class data
+        self.display_class_data()
 
-        # Write class data to csv
+        # Write updated class data to csv
+        self.write_class_data()
 
         return
 
@@ -123,7 +126,7 @@ class DataCollection:
                 data_pixel_box_array = np.append(data_pixel_box_array, class_assign)
 
                 # Write pixel data t
-                self.write_data_to_data_base(data_pixel_box_array, 'input_and_output_data.csv')
+                self.write_data_to_data_base(data_pixel_box_array, self.csv_data_base_name)
 
                 # Show count
                 curr_image_num += 1
@@ -131,7 +134,7 @@ class DataCollection:
                 print("Current CSV index: " + str(self.total_number_of_examples))
 
         print("Done Writing Data")
-        return curr_image_num, total_count
+        return
 
     '''
     Name       : 
@@ -149,24 +152,26 @@ class DataCollection:
 
         # File name specific prompt for multiple files
         if multiple_files == "Y":
-            print("For multiple files ensure the file names are the same with the last character in the string"
-                  " being number.")
-            print("\tFor example: file_name_1, file_name_2...\ninputFile1, inputFile2,...")
+            print("For multiple files ensure the image names are the same with the last character in the string"
+                  " being number starting with 0")
+            print("\tFor example: file_name_0, file_name_1, file_name_2...\n\tinputFile0, inputFile1, inputFile2,...\n")
+            print("For the image extension please include the dot prefix")
+            print("\tFor example: .JPG, .PNG\n")
 
         # Prompt user for file name and double check it is correct
         file_name = None
-        file_type = None
+        file_extension = None
         while True:
-            file_name = input("Please enter the file name: ")
-            file_type = input("\nPlease enter the file type: ")
-            file_check = input("Is the following information correct? (Y/N) \n\tFile Name: %s\n\tFile Type: %s"
-                               % (file_name, file_type))
+            file_name = input("Please enter the image name: \n")
+            file_extension = input("Please enter the image extension: \n")
+            file_check = input("Is the following information correct? (Y/N) \n\tFile Name: %s\n\tImage Extension: %s\n"
+                               % (file_name, file_extension))
             if file_check == "Y" or file_check == 'y':
                 break
             else:
                 print("Error: Please try again\n")
 
-        return file_name, file_type
+        return file_name, file_extension
 
     '''
     Name       : 
@@ -184,14 +189,15 @@ class DataCollection:
 
         # Prompt for batch/individual and class number
         while True:
-            single_class = input("Would you like to assign all sub boxes in the given picutre(s) to one class? (Y/N): ")
+            single_class = input("Would you like to assign all sub boxes in the given picutre(s) to one class? (Y/N):"
+                                 " \n")
             if single_class == "Y" or single_class == "y":
                 batch_class_num = self.batch_data_prompt()
                 break
             elif single_class == "N" or single_class == "n":
                 break
             else:
-                print("Input Error: Try again")
+                print("Input Error: Try again\n")
 
         return batch_class_num
 
@@ -205,16 +211,16 @@ class DataCollection:
     def batch_data_prompt(self):
         batch_class_num = -1
         while True:
-            class_number = input("Please enter the class number: ")
+            class_number = input("Please enter the class number: \n")
             if class_number not in self.class_ht.keys():
-                new_class_num = input("This class does not exist. Would you like to add a new class? (Y/N) ")
-                if new_class_num == 'Y' or new_class_num == 'y':
-                    new_class_name = input("Please enter the new class name: ")
-                    self.class_ht[new_class_num] = (new_class_name, 0)
-                    batch_class_num = new_class_num
+                new_class_response = input("This class does not exist. Would you like to add a new class? (Y/N) \n")
+                if new_class_response == 'Y' or new_class_response == 'y':
+                    new_class_name = input("Please enter the new class name: \n")
+                    self.class_ht[class_number] = (new_class_name, 0)
+                    batch_class_num = class_number
                     break
                 else:
-                    print("Input Error: Try again")
+                    print("Input Error: Try again\n")
             else:
                 batch_class_num = class_number
                 break
@@ -235,7 +241,7 @@ class DataCollection:
 
             subpixel_box.resize((600, 600)).show()
             self.display_class_data()
-            temp = input('What class does this subpixel box belong to: ')
+            temp = input('What class does this subpixel box belong to: \n')
             if int(temp) in class_map:
                 class_number = int(temp)
         return class_number
@@ -263,23 +269,31 @@ class DataCollection:
             value == (class name:str , number_examples: int)
     '''
     def read_class_data(self):
-        with open(self.class_data_name) as class_data_csv:
-            reader = csv.reader(class_data_csv)
-            data_list = list(reader)
+        try:
+            with open(self.class_data_name) as class_data_csv:
+                reader = csv.reader(class_data_csv)
+                data_list = list(reader)
 
-        # Dictionary Data Conversion
-        class_data_ht = {}
-        for class_num, class_name, num_class_examples in data_list:
-            class_data_ht[int(class_num)] = (class_name, int(num_class_examples))
+            # Dictionary Data Conversion
+            class_data_ht = {}
+            for class_num, class_name, num_class_examples in data_list:
+                class_data_ht[int(class_num)] = (class_name, int(num_class_examples))
 
-        # Store class data in ht field
-        self.class_ht = class_data_ht
+            # Store class data in ht field
+            self.class_ht = class_data_ht
 
-        # Count the total number of examples processed
-        temp_total = 0
-        for key, values in self.class_ht.items():
-            temp_total += values[1]
-        self.total_number_of_examples = temp_total
+            # Count the total number of examples processed
+            temp_total = 0
+            for key, values in self.class_ht.items():
+                temp_total += values[1]
+            self.total_number_of_examples = temp_total
+
+        except FileNotFoundError:
+            print("No class data file found.\n")
+            self.class_ht = {}
+        except ValueError:
+            print("Empty class data file\n")
+            self.class_ht = {}
 
         return
 
@@ -292,14 +306,14 @@ class DataCollection:
             key == class number
             value == (class name:str , number_examples: int)
     '''
-    def write_class_data(self, class_ht):
+    def write_class_data(self):
         file_name = self.class_data_name
 
         # Write class data dictionary
         try:
             with open(file_name, 'w+', newline='') as class_data_file:
                 writer = csv.writer(class_data_file)
-                for key, values in class_ht.items():
+                for key, values in self.class_ht.items():
                     writer.writerow([key, values[0], values[1]])
         except IOError:
             print("I/O error")
@@ -319,7 +333,7 @@ class DataCollection:
     def display_class_data(self):
         print("The current class data is as follows: ")
         for key, values in self.class_ht.items():
-            print("An input of %d denotes class: %s which contains %s examples" % (key, values[0], values[1]))
+            print("An input of %d denotes class: %s which contains %d examples" % (key, values[0], values[1]))
         print("\n")
         return
 
@@ -333,15 +347,8 @@ Notes      :
 
 
 def main():
-    test_dict = {
-        0: ('Class_0', 12),
-        1: ('Class_1', 24),
-        2: ('Class_2', 48),
-        3: ('Class_3', 96),
-    }
-    dat_test = DataCollection()
-    dat_test.write_class_data(test_dict)
-    dat_test.read_class_data()
+    obj_data_collection = DataCollection()
+    obj_data_collection.top_data_collection()
 
     '''
     total_count = 0
