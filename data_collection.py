@@ -19,7 +19,6 @@ class DataCollection:
         self.csv_data_base_name = 'input_and_output_data_test.csv'
         self.class_data_name = "class_data.csv"
 
-
     '''
     Name       : 
     Purpose    : 
@@ -31,17 +30,22 @@ class DataCollection:
         # Load in class data
         self.read_class_data()
 
-        # Prompt user for the file name
-        file_name, file_extension, single_file = self.file_name_prompt()
+        while True:
+            # Prompt user for the file name
+            file_name, file_extension, single_file = self.file_name_prompt()
 
-        # Prompt the user for batch/individual and class number
-        class_num = self.batch_vs_individual_prompt()
+            # Prompt the user for batch/individual and class number
+            class_num = self.batch_vs_individual_prompt()
 
-        # Partition the image(s) and write data to csv
-        self.top_partition_image(class_num, file_name, file_extension, single_file)
+            # Partition the image(s) and write data to csv
+            self.top_partition_image(class_num, file_name, file_extension, single_file)
 
-        # Display post data collection class data
-        self.display_class_data()
+            # Display post data collection class data
+            self.display_class_data()
+
+            # Prompt for more data collection
+            if not self.collect_more_data_prompt():
+                break
 
         # Write updated class data to csv
         self.write_class_data()
@@ -364,6 +368,25 @@ class DataCollection:
             print(formatted_entry)
         print("\n")
         return
+
+    '''
+    Name       : 
+    Purpose    : 
+    Parameters : 
+    Return     : 
+    Notes      :
+    '''
+    @staticmethod
+    def collect_more_data_prompt() -> bool:
+        while True:
+            more_data = input("Would you like to collect data on another image? (Y/N) \n")
+            if more_data == 'Y' or more_data == 'y':
+                return True
+            elif more_data == 'N' or more_data == 'n':
+                return False
+            else:
+                print("Input Error: Try again.\n")
+
 
 '''
 Name       : 
