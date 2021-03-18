@@ -16,6 +16,7 @@ class DataCollection:
         self.num_examples_per_class = None
         self.class_ht = None
         self.class_data_name = "class_data.csv"
+        self.total_number_of_examples = None
 
 
     '''
@@ -26,10 +27,43 @@ class DataCollection:
     Notes      :
     '''
     def top_data_collection(self):
-        # Prompt user for bulk data colllection or sample by sample collection
+        # Load in class data
+        self.read_class_data()
 
-        # Prompt the user for the file name
+        # Prompt user for the file name
+        file_name, file_extension = self.file_name_prompt()
 
+        # Prompt the user for batch/individual and class number
+        class_num = self.batch_vs_individual_prompt()
+
+        # Partition the image(s) and write data to csv
+
+        # Update class data
+
+        # Write class data to csv
+
+        return
+
+    '''
+    Name       : 
+    Purpose    : 
+    Parameters : 
+    Return     : 
+    Notes      :
+    '''
+    def partition_image_top(self, class_number, file_name, file_type):
+        if class_number == -1:
+            self.partition_image((file_name + file_type), class_number, self.total_number_of_examples)
+        else:
+            try:
+                file_name_idx = 0
+                while True:
+                    full_file_name = file_name + str(file_name_idx) + file_type
+                    self.partition_image(full_file_name, class_number, self.total_number_of_examples)
+                    file_name_idx += 1
+            except IOError:
+                print("Max number of images reached")
+                return
         return
 
     '''
@@ -72,7 +106,17 @@ class DataCollection:
                 # Write the input and output data to respective files
                 data_pixel_box = list(pixel_box_rgb.getdata())
                 data_pixel_box_array = np.array([elem for tuples in data_pixel_box for elem in tuples])
-                data_pixel_box_array = np.append(data_pixel_box_array, class_index)
+
+                # Class assignment
+                class_assign = None
+                if class_index == -1:
+                    class_assign = self.assign_class_prompt(pixel_box_rgb)
+                else:
+                    class_assign = class_index
+
+
+                # Append class index data
+                data_pixel_box_array = np.append(data_pixel_box_array, class_assign)
 
                 # For writing all data
                 self.write_data_to_data_base(data_pixel_box_array, 'input_and_output_data.csv')
@@ -85,7 +129,6 @@ class DataCollection:
         print("Done Writing Data")
         return curr_image_num, total_count
 
-
     '''
     Name       : 
     Purpose    : 
@@ -93,7 +136,8 @@ class DataCollection:
     Return     : 
     Notes      :
     '''
-    def file_name_and_class_prompt(self):
+    @staticmethod
+    def file_name_prompt():
         # Prompt user for number of file inputs
         multiple_files = None
         while multiple_files is None or multiple_files != "Y" or multiple_files == "N":
@@ -118,11 +162,79 @@ class DataCollection:
             else:
                 print("Error: Please try again\n")
 
-        # Prompt user for class number (if new prompt for new name too)
-        while True:
-            break
-
         return file_name, file_type
+
+    '''
+    Name       : 
+    Purpose    : 
+    Parameters : 
+    Return     : 
+    Notes      :
+    '''
+    def batch_vs_individual_prompt(self):
+        # Return value instantiation
+        batch_class_num = -1
+
+        # Display Class Data
+        self.display_class_data()
+
+        # Prompt for batch/individual and class number
+        while True:
+            single_class = input("Would you like to assign all sub boxes in the given picutre(s) to one class? (Y/N): ")
+            if single_class == "Y" or single_class == "y":
+                batch_class_num = self.batch_data_prompt()
+                break
+            elif single_class == "N" or single_class == "n":
+                break
+            else:
+                print("Input Error: Try again")
+
+        return batch_class_num
+
+    '''
+    Name       : 
+    Purpose    : 
+    Parameters : 
+    Return     : 
+    Notes      :
+    '''
+    def batch_data_prompt(self):
+        batch_class_num = -1
+        while True:
+            class_number = input("Please enter the class number: ")
+            if class_number not in self.class_ht.keys():
+                new_class_num = input("This class does not exist. Would you like to add a new class? (Y/N) ")
+                if new_class_num == 'Y' or new_class_num == 'y':
+                    new_class_name = input("Please enter the new class name: ")
+                    self.class_ht[new_class_num] = (new_class_name, 0)
+                    batch_class_num = new_class_num
+                    break
+                else:
+                    print("Input Error: Try again")
+            else:
+                batch_class_num = class_number
+                break
+
+        return batch_class_num
+
+    '''
+    Name       : 
+    Purpose    : 
+    Parameters : 
+    Return     : 
+    Notes      :
+    '''
+    def assign_class_prompt(self, subpixel_box) -> int:
+        class_number = -1
+        class_map = {0, 1, 2, 3}
+        while class_number == -1:
+
+            subpixel_box.resize((600, 600)).show()
+            self.display_class_data()
+            temp = input('What class does this subpixel box belong to: ')
+            if int(temp) in class_map:
+                class_number = int(temp)
+        return class_number
 
     '''
     Name       : 
@@ -137,27 +249,6 @@ class DataCollection:
             data_writer.writerow(pixel_data)
         return
 
-
-    '''
-    Name       : 
-    Purpose    : 
-    Parameters : 
-    Return     : 
-    Notes      :
-    '''
-    def assign_class(self, subpixel_box) -> int:
-        class_number = -1
-        class_map = {0, 1, 2, 3}
-        while class_number == -1:
-
-            subpixel_box.resize((600, 600)).show()
-            #print('Class 0 Denotes: Tin Foil\nClass 1 Denotes: Well Plate\nClass 2 Denotes: Well Plate with Object\nClass '
-            #      '3 Denotes: Other')
-            temp = input('What class does this subpixel box belong to: ')
-            if int(temp) in class_map:
-                class_number = int(temp)
-        return class_number
-
     '''
     Name       : 
     Purpose    : 
@@ -167,21 +258,26 @@ class DataCollection:
             key == class number
             value == (class name:str , number_examples: int)
     '''
-    def read_class_data(self) -> dict:
-        # Read in class data
-        data = np.loadtxt(open(self.class_data_name), delimiter=",")
-        class_keys = data[:, 0]
-        class_data = data[:, 1:]
+    def read_class_data(self):
+        with open(self.class_data_name) as class_data_csv:
+            reader = csv.reader(class_data_csv)
+            data_list = list(reader)
 
-        # Transform class data into hash table
-        class_ht = dict()
-        for idx in range(len(class_keys)):
-            curr_class_key = class_keys[idx, 0]
-            curr_class_name = class_data[idx, 1]
-            curr_class_count = int(class_data[idx, 2])
-            class_ht[curr_class_key] = (curr_class_name, curr_class_count)
+        # Dictionary Data Conversion
+        class_data_ht = {}
+        for class_num, class_name, num_class_examples in data_list:
+            class_data_ht[int(class_num)] = (class_name, int(num_class_examples))
 
-        return class_ht
+        # Store class data in ht field
+        self.class_ht = class_data_ht
+
+        # Count the total number of examples processed
+        temp_total = 0
+        for key, values in self.class_ht.items():
+            temp_total += values[1]
+        self.total_number_of_examples = temp_total
+
+        return
 
     '''
     Name       : 
@@ -195,25 +291,32 @@ class DataCollection:
     def write_class_data(self, class_ht):
         file_name = self.class_data_name
 
-        # Open the current file and truncate the data
-        class_data_file = open(file_name, 'w+', newline='')
-
-        # CSV columns field names
-        csv_fields = ['Class Number', "Class Name", 'Number of Examples']
-
         # Write class data dictionary
         try:
-            with class_data_file:
-                writer = csv.DictWriter(class_ht, fieldnames=csv_fields)
-                writer.writeheader()
-                for data in class_ht:
-                    writer.writerows(data)
+            with open(file_name, 'w+', newline='') as class_data_file:
+                writer = csv.writer(class_data_file)
+                for key, values in class_ht.items():
+                    writer.writerow([key, values[0], values[1]])
         except IOError:
             print("I/O error")
 
         # Close the class data file
         class_data_file.close()
 
+        return
+
+    '''
+    Name       : 
+    Purpose    : 
+    Parameters : 
+    Return     : 
+    Notes      :
+    '''
+    def display_class_data(self):
+        print("The current class data is as follows: ")
+        for key, values in self.class_ht.items():
+            print("An input of %d denotes class: %s which contains %s examples" % (key, values[0], values[1]))
+        print("\n")
         return
 
 '''
@@ -226,6 +329,16 @@ Notes      :
 
 
 def main():
+    test_dict = {
+        0: ('Class_0', 12),
+        1: ('Class_1', 24),
+        2: ('Class_2', 48),
+        3: ('Class_3', 96),
+    }
+    dat_test = DataCollection()
+    dat_test.write_class_data(test_dict)
+    dat_test.read_class_data()
+
     '''
     total_count = 0
 
