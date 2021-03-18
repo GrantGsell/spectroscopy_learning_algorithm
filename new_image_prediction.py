@@ -33,29 +33,13 @@ class ImagePrediction:
         image_ht = self.new_image_partition_and_prediction(new_image_name, parameters, self.auto_flag)
 
         # Convert Prediction into a binary matrix
-        binary_prediction_matrix = self.create_binary_matrix(image_ht, self.img_height // self.num_row_pixels, self.img_width // self.num_col_pixels)
+        binary_prediction_matrix = self.create_binary_matrix(image_ht,
+                        self.img_height // self.num_row_pixels, self.img_width // self.num_col_pixels)
 
         # Write the binary matrix data
         self.write_binary_matrix(binary_prediction_matrix)
 
         return
-
-
-
-
-    '''
-    Name       :
-    Purpose    : 
-    Parameters :
-    Return     :
-    Notes      :
-    '''
-    def read_parameters(self):
-        data = np.loadtxt(open(self.parameter_file_name), delimiter=",", dtype='float32')
-        parameters = data[:, :]
-        self.num_classes = (np.shape(parameters))[0]
-        return parameters
-
 
     '''
     Name       :
@@ -334,10 +318,22 @@ class ImagePrediction:
 
         return
 
+    '''
+        Name       :
+        Purpose    : 
+        Parameters :
+        Return     :
+        Notes      :
+        '''
+    def read_parameters(self):
+        data = np.loadtxt(open(self.parameter_file_name), delimiter=",", dtype='float32')
+        parameters = data[:, :]
+        self.num_classes = (np.shape(parameters))[0]
+        return parameters
 
 def main():
     new_prediction = ImagePrediction(3)
-    new_prediction.top_image_prediction('new_image_test.jpg', False)
+    new_prediction.top_image_prediction('new_image_test.jpg')
 
     return
 
