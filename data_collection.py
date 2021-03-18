@@ -13,11 +13,11 @@ Description :
 class DataCollection:
 
     def __init__(self):
+        self.show_images = False
         self.class_ht = None
-        self.class_data_name = "class_data.csv"
         self.total_number_of_examples = 0
         self.csv_data_base_name = 'input_and_output_data_test.csv'
-        self.show_images = False
+        self.class_data_name = "class_data.csv"
 
 
     '''
@@ -32,13 +32,13 @@ class DataCollection:
         self.read_class_data()
 
         # Prompt user for the file name
-        file_name, file_extension = self.file_name_prompt()
+        file_name, file_extension, single_file = self.file_name_prompt()
 
         # Prompt the user for batch/individual and class number
         class_num = self.batch_vs_individual_prompt()
 
         # Partition the image(s) and write data to csv
-        self.partition_image_top(class_num, file_name, file_extension)
+        self.top_partition_image(class_num, file_name, file_extension, single_file)
 
         # Display post data collection class data
         self.display_class_data()
@@ -55,8 +55,8 @@ class DataCollection:
     Return     : 
     Notes      :
     '''
-    def partition_image_top(self, class_number, file_name, file_type):
-        if class_number == -1:
+    def top_partition_image(self, class_number, file_name, file_type, single_img: bool) -> None:
+        if class_number == -1 or single_img:
             self.partition_image((file_name + file_type), class_number, self.total_number_of_examples)
         else:
             try:
@@ -77,7 +77,7 @@ class DataCollection:
     Return     : The number of examples data has been collected for
     Notes      :
     '''
-    def partition_image(self, file_name: str, class_index: int, total_count: int):
+    def partition_image(self, file_name: str, class_index: int, total_count: int) -> None:
         # Read in the RGB image and display it
         image_rgb = img.open(file_name)
         image_rgb.load()                # PIL 'forgot' to load after opening
@@ -96,7 +96,7 @@ class DataCollection:
         m = 40
         n = 40
 
-        curr_image_num = 0
+        #curr_image_num = 0
         for row in range(m, height + 1, m):
             for col in range(n, width + 1, n):
                 # Pixel Box Boundaries
@@ -128,13 +128,13 @@ class DataCollection:
                 # Append class index data
                 data_pixel_box_array = np.append(data_pixel_box_array, class_assign)
 
-                # Write pixel data t
+                # Write pixel data to csv
                 self.write_data_to_data_base(data_pixel_box_array, self.csv_data_base_name)
 
                 # Show count
-                curr_image_num += 1
+                #curr_image_num += 1
                 self.total_number_of_examples += 1
-                print("Current CSV index: " + str(self.total_number_of_examples))
+                #print("Current CSV index: " + str(self.total_number_of_examples))
 
         print("Done Writing Data")
         return
@@ -147,12 +147,18 @@ class DataCollection:
     Notes      :
     '''
     @staticmethod
-    def file_name_prompt():
+    def file_name_prompt() -> tuple:
         # Prompt user for number of file inputs
-        multiple_files = None
-        while multiple_files is None and multiple_files != "Y" and multiple_files != "N" and multiple_files != "y" \
-                and multiple_files != "n":
-            multiple_files = input("Are you inputting more than one file? (Y/N): ")
+        single_file_flag = None
+        while True:
+            multiple_files = input("Are you inputting more than one file? (Y/N): \n")
+            if multiple_files == "Y" or multiple_files == "y":
+                single_file_flag = False
+            elif multiple_files == "N" or multiple_files == "n":
+                single_file_flag = True
+                break
+            else:
+                print("Input Error: Try again.\n")
 
         # File name specific prompt for multiple files
         if multiple_files == "Y":
@@ -173,9 +179,9 @@ class DataCollection:
             if file_check == "Y" or file_check == 'y':
                 break
             else:
-                print("Error: Please try again\n")
+                print("Input Error: Try again.\n")
 
-        return file_name, file_extension
+        return file_name, file_extension, single_file_flag
 
     '''
     Name       : 
@@ -184,7 +190,7 @@ class DataCollection:
     Return     : 
     Notes      :
     '''
-    def batch_vs_individual_prompt(self):
+    def batch_vs_individual_prompt(self) -> int:
         # Return value instantiation
         batch_class_num = -1
 
@@ -201,7 +207,7 @@ class DataCollection:
             elif single_class == "N" or single_class == "n":
                 break
             else:
-                print("Input Error: Try again\n")
+                print("Input Error: Try again.\n")
 
         return batch_class_num
 
@@ -212,10 +218,17 @@ class DataCollection:
     Return     : 
     Notes      :
     '''
-    def class_number_prompt(self):
+    def class_number_prompt(self) -> int:
         user_input_class_number = -1
         while True:
-            class_number = int(input("Please enter the class number: \n"))
+            try:
+                class_number = input("Please enter the class number: \n")
+                class_number = int(class_number)
+            except ValueError:
+                print("Input Error: Try again.\n")
+                continue
+
+            # New class number check
             if class_number not in self.class_ht.keys():
                 new_class_response = input("This class does not exist. Would you like to add a new class? (Y/N) \n")
                 if new_class_response == 'Y' or new_class_response == 'y':
@@ -224,7 +237,7 @@ class DataCollection:
                     user_input_class_number = class_number
                     break
                 else:
-                    print("Input Error: Try again\n")
+                    print("Input Error: Try again.\n")
             else:
                 user_input_class_number = class_number
                 break
@@ -253,7 +266,8 @@ class DataCollection:
     Return     : 
     Notes      :
     '''
-    def write_data_to_data_base(self, pixel_data: list, csv_file_name: str) -> None:
+    @staticmethod
+    def write_data_to_data_base(pixel_data: list, csv_file_name: str) -> None:
         with open(csv_file_name, mode='a') as storage:
             data_writer = csv.writer(storage, delimiter=',', lineterminator='\n')
             data_writer.writerow(pixel_data)
@@ -268,7 +282,7 @@ class DataCollection:
             key == class number
             value == (class name:str , number_examples: int)
     '''
-    def read_class_data(self):
+    def read_class_data(self) -> None:
         try:
             with open(self.class_data_name) as class_data_csv:
                 reader = csv.reader(class_data_csv)
@@ -306,7 +320,7 @@ class DataCollection:
             key == class number
             value == (class name:str , number_examples: int)
     '''
-    def write_class_data(self):
+    def write_class_data(self) -> None:
         file_name = self.class_data_name
 
         # Write class data dictionary
@@ -330,7 +344,7 @@ class DataCollection:
     Return     : 
     Notes      :
     '''
-    def display_class_data(self):
+    def display_class_data(self) -> None:
         print("The current class data is as follows: ")
 
         # Set column header format specifier
@@ -361,15 +375,7 @@ Notes      :
 
 
 def main():
-    test = {
-        0: ("Tin Foil", 12),
-        1: ("Well Plate", 24),
-        2: ("Cell Culture Substitute", 48)
-    }
-
     obj_data_collection = DataCollection()
-    obj_data_collection.class_ht = test
-    obj_data_collection.display_class_data()
     obj_data_collection.top_data_collection()
     return
 
