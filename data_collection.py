@@ -9,11 +9,10 @@ Date        :
 Description :
 '''
 
+
 class DataCollection:
 
     def __init__(self):
-        self.num_examples = None
-        self.num_examples_per_class = None
         self.class_ht = None
         self.class_data_name = "class_data.csv"
         self.total_number_of_examples = 0
@@ -118,7 +117,7 @@ class DataCollection:
                 # Class assignment
                 class_assign = None
                 if class_index == -1:
-                    class_assign = self.assign_class_prompt(pixel_box_rgb)
+                    class_assign = self.individually_assign_class_prompt(pixel_box_rgb)
                 else:
                     class_assign = class_index
 
@@ -151,7 +150,8 @@ class DataCollection:
     def file_name_prompt():
         # Prompt user for number of file inputs
         multiple_files = None
-        while multiple_files is None or multiple_files != "Y" or multiple_files == "N":
+        while multiple_files is None and multiple_files != "Y" and multiple_files != "N" and multiple_files != "y" \
+                and multiple_files != "n":
             multiple_files = input("Are you inputting more than one file? (Y/N): ")
 
         # File name specific prompt for multiple files
@@ -196,7 +196,7 @@ class DataCollection:
             single_class = input("Would you like to assign all sub boxes in the given\n\t"
                                  " picutre(s) to one class? (Y/N): \n")
             if single_class == "Y" or single_class == "y":
-                batch_class_num = self.batch_data_prompt()
+                batch_class_num = self.class_number_prompt()
                 break
             elif single_class == "N" or single_class == "n":
                 break
@@ -212,8 +212,8 @@ class DataCollection:
     Return     : 
     Notes      :
     '''
-    def batch_data_prompt(self):
-        batch_class_num = -1
+    def class_number_prompt(self):
+        user_input_class_number = -1
         while True:
             class_number = int(input("Please enter the class number: \n"))
             if class_number not in self.class_ht.keys():
@@ -221,15 +221,15 @@ class DataCollection:
                 if new_class_response == 'Y' or new_class_response == 'y':
                     new_class_name = input("Please enter the new class name: \n")
                     self.class_ht[class_number] = (new_class_name, 0)
-                    batch_class_num = class_number
+                    user_input_class_number = class_number
                     break
                 else:
                     print("Input Error: Try again\n")
             else:
-                batch_class_num = class_number
+                user_input_class_number = class_number
                 break
 
-        return batch_class_num
+        return user_input_class_number
 
     '''
     Name       : 
@@ -238,16 +238,13 @@ class DataCollection:
     Return     : 
     Notes      :
     '''
-    def assign_class_prompt(self, subpixel_box) -> int:
+    def individually_assign_class_prompt(self, subpixel_box) -> int:
         class_number = -1
-        class_map = {0, 1, 2, 3}
+        self.display_class_data()
         while class_number == -1:
-
             subpixel_box.resize((600, 600)).show()
-            self.display_class_data()
-            temp = input('What class does this subpixel box belong to: \n')
-            if int(temp) in class_map:
-                class_number = int(temp)
+            #self.display_class_data()
+            class_number = self.class_number_prompt()
         return class_number
 
     '''
@@ -354,40 +351,6 @@ Notes      :
 def main():
     obj_data_collection = DataCollection()
     obj_data_collection.top_data_collection()
-
-    '''
-    total_count = 0
-
-    # Class 0 (Tin Foil) Data Collection
-    num_class_0_examples = 0
-    for l in range(1):
-        image_name_0 = "tin_foil_" + str(l) + "_ver_1.jpg"
-        num_class_0_examples_temp, total_count = partition_image(image_name_0, 0, total_count)
-        num_class_0_examples += num_class_0_examples_temp
-
-    # Class 1 (Well Plate) Data Collection
-    num_class_1_examples = 0
-    for i in range(1):
-        image_name_1 = "well_plate_" + str(i) + "_ver_1.jpg"
-        num_class_1_examples_temp, total_count = partition_image(image_name_1, 1, total_count)
-        num_class_1_examples += num_class_1_examples_temp
-
-    # Class 2 (Sample Substitution) Data Collection
-    num_class_2_examples = 0
-    for j in range(1):
-        image_name_2 = "cell_sub_" + str(j) + ".jpg"
-        num_class_2_examples_temp, total_count = partition_image(image_name_2, 2, total_count)
-        num_class_2_examples += num_class_2_examples_temp
-
-
-    # Report of Number of Examples Taken for each class
-    print("Number of examples for each Class: ")
-    print("Class 0: " + str(num_class_0_examples))
-    print("Class 1: " + str(num_class_1_examples))
-    print("Class 2: " + str(num_class_2_examples))
-    print("Main Function Done")
-    '''
-
     return
 
 if __name__ == '__main__':
