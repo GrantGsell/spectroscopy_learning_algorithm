@@ -37,6 +37,7 @@ class DataCollection:
         class_num = self.batch_vs_individual_prompt()
 
         # Partition the image(s) and write data to csv
+        
 
         # Update class data
 
@@ -114,17 +115,20 @@ class DataCollection:
                 else:
                     class_assign = class_index
 
+                # Update class data
+                class_name, num_class_examples = self.class_ht[class_assign]
+                self.class_ht[class_assign] = (class_name, num_class_examples + 1)
 
                 # Append class index data
                 data_pixel_box_array = np.append(data_pixel_box_array, class_assign)
 
-                # For writing all data
+                # Write pixel data t
                 self.write_data_to_data_base(data_pixel_box_array, 'input_and_output_data.csv')
 
                 # Show count
                 curr_image_num += 1
-                total_count += 1
-                print("Current CSV index: " + str(total_count))
+                self.total_number_of_examples += 1
+                print("Current CSV index: " + str(self.total_number_of_examples))
 
         print("Done Writing Data")
         return curr_image_num, total_count
