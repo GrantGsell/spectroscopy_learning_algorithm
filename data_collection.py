@@ -240,10 +240,9 @@ class DataCollection:
     '''
     def individually_assign_class_prompt(self, subpixel_box) -> int:
         class_number = -1
-        self.display_class_data()
         while class_number == -1:
             subpixel_box.resize((600, 600)).show()
-            #self.display_class_data()
+            self.display_class_data()
             class_number = self.class_number_prompt()
         return class_number
 
@@ -333,9 +332,22 @@ class DataCollection:
     '''
     def display_class_data(self):
         print("The current class data is as follows: ")
-        print("Class\tClass_Name\t\t\tNumber of Examples")
-        for key, values in self.class_ht.items():
-            print("%d    \t%s\t\t%d" % (key, values[0], values[1]))
+
+        # Set column header format specifier
+        header_fs = "{col0:^25s} | {col1:^25s} | {col2:^25s}"
+        header = header_fs.format(col0="Class", col1="Class Name", col2="Number of Examples")
+        print(header)
+
+        # Header/Data separator
+        underline_fs = "{:-^75}"
+        print(underline_fs.format(''))
+
+        # Display dictionary data
+        for key, values in sorted(self.class_ht.items()):
+            # Set current entry format specifier
+            entry_fs = "{key:^25d} | {val0:^25.25s} | {val1:^25d}"
+            formatted_entry = entry_fs.format(key=key, val0=values[0], val1=values[1])
+            print(formatted_entry)
         print("\n")
         return
 
@@ -349,7 +361,15 @@ Notes      :
 
 
 def main():
+    test = {
+        0: ("Tin Foil", 12),
+        1: ("Well Plate", 24),
+        2: ("Cell Culture Substitute", 48)
+    }
+
     obj_data_collection = DataCollection()
+    obj_data_collection.class_ht = test
+    obj_data_collection.display_class_data()
     obj_data_collection.top_data_collection()
     return
 
