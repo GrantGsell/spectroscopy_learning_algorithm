@@ -18,6 +18,7 @@ class DataCollection:
         self.class_data_name = "class_data.csv"
         self.total_number_of_examples = 0
         self.csv_data_base_name = 'input_and_output_data_test.csv'
+        self.show_images = False
 
 
     '''
@@ -81,7 +82,10 @@ class DataCollection:
         # Read in the RGB image and display it
         image_rgb = img.open(file_name)
         image_rgb.load()                # PIL 'forgot' to load after opening
-        image_rgb.show()
+
+        # Show images
+        if self.show_images:
+            image_rgb.show()
 
         r, g, b = image_rgb.getpixel((1, 1))
 
@@ -189,8 +193,8 @@ class DataCollection:
 
         # Prompt for batch/individual and class number
         while True:
-            single_class = input("Would you like to assign all sub boxes in the given picutre(s) to one class? (Y/N):"
-                                 " \n")
+            single_class = input("Would you like to assign all sub boxes in the given\n\t"
+                                 " picutre(s) to one class? (Y/N): \n")
             if single_class == "Y" or single_class == "y":
                 batch_class_num = self.batch_data_prompt()
                 break
@@ -211,7 +215,7 @@ class DataCollection:
     def batch_data_prompt(self):
         batch_class_num = -1
         while True:
-            class_number = input("Please enter the class number: \n")
+            class_number = int(input("Please enter the class number: \n"))
             if class_number not in self.class_ht.keys():
                 new_class_response = input("This class does not exist. Would you like to add a new class? (Y/N) \n")
                 if new_class_response == 'Y' or new_class_response == 'y':
@@ -332,8 +336,9 @@ class DataCollection:
     '''
     def display_class_data(self):
         print("The current class data is as follows: ")
+        print("Class\tClass_Name\t\t\tNumber of Examples")
         for key, values in self.class_ht.items():
-            print("An input of %d denotes class: %s which contains %d examples" % (key, values[0], values[1]))
+            print("%d    \t%s\t\t%d" % (key, values[0], values[1]))
         print("\n")
         return
 
