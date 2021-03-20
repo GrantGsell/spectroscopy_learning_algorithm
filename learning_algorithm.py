@@ -1,7 +1,7 @@
 import numpy as np
 import csv
 from scipy import optimize as optim
-
+import matplotlib.pyplot as plt
 
 class LearningAlgorithm:
     def __init__(self):
@@ -19,11 +19,20 @@ class LearningAlgorithm:
         (input_data, output_data) = self.load_matrix_data()
 
         # Randomize Data Set
-        #(input_data, output_data) = self.randomize_matrix_row_data(input_data, output_data)
+        (input_data, output_data) = self.randomize_matrix_row_data(input_data, output_data)
 
         # Split data set into 3 data sets
         og_data_set = np.concatenate((input_data, output_data), axis=1)
-        set0, set1, set2 = self.split_original_training_set(og_data_set)
+        training_set, cv_set, test_set = self.split_original_training_set(og_data_set)
+
+        # Split each data set into input output
+        training_set_input, training_set_output = self.split_data_set_into_i_o(training_set)
+        cv_set_input, cv_set_output = self.split_data_set_into_i_o(cv_set)
+        test_set_input, test_set_output = self.split_data_set_into_i_o(test_set)
+
+        # Find the optimal learning constant
+        learning_constant = self.lambda_selection(training_set[:, 0:-1], training_set[:, -1],
+                              cv_set[:, 0:-1], training_set[:, -1], self.num_classes)
 
         # Find the optimum values for theta
         parameter_values = self.one_vs_all(input_data, output_data, self.num_classes, 0.1)
@@ -53,13 +62,15 @@ class LearningAlgorithm:
     '''
     def load_matrix_data(self):
         data = np.loadtxt(open('input_and_output_data.csv'), delimiter=",", dtype='float32')
+        X, y = self.split_data_set_into_i_o(data)
+        """
         X = data[:, 0: -1]
         y = data[:, -1]
 
         # Ensure y is defined by a 2d tuple
         m = y.shape
         y = np.reshape(y, (m[0], 1))
-
+        """
         self.num_classes = len(np.unique(y))
         return X, y
 
@@ -262,6 +273,27 @@ class LearningAlgorithm:
         return predict
 
     """
+    Name       :
+    Purpose    : 
+    Parameters :
+    Return     :
+    Notes      :
+    """
+    def train_logistic_regression(self, theta, X, y):
+        result = self.predict_one_vs_all(theta, X)
+
+        for row in range(np.size(result)):
+            a = result[row]
+            b = y[row]
+            if result[row] == y[row]:
+                result[row] = 1.0
+            else:
+                result[row] = 0.0
+        accuracy = (np.sum(result) / np.size(result)) * 100.0
+        return accuracy
+
+
+    """
     Name       : randomize_matrix_row_data
     Purpose    : To synchronously randomize the input and output data
     Parameters : input_data_matrix which is the input data matrix, output_data_vector which is the output data vector.
@@ -275,8 +307,7 @@ class LearningAlgorithm:
                 data_matrix has dimensions (number of examples x number of features + 1)
                 The plus 1 denotes the output column vector being added to the input data matrix
     """
-    @staticmethod
-    def randomize_matrix_row_data(input_data_matrix, output_data_vector):
+    def randomize_matrix_row_data(self, input_data_matrix, output_data_vector):
         # Concatenate input and output data into one data matrix
         data_matrix = np.concatenate((input_data_matrix, output_data_vector), axis=1)
 
@@ -290,8 +321,9 @@ class LearningAlgorithm:
         (m, n) = copy_data_matrix.shape
 
         # Split data accordingly
-        random_input_data = copy_data_matrix[:, 0:n-1]
-        random_output_data = copy_data_matrix[:, n-1]
+        random_input_data, random_output_data = self.split_data_set_into_i_o(copy_data_matrix)
+        #random_input_data = copy_data_matrix[:, 0:n-1]
+        #random_output_data = copy_data_matrix[:, n-1]
 
         return random_input_data, random_output_data
 
@@ -302,12 +334,31 @@ class LearningAlgorithm:
     Return     :
     Notes      :
     """
-    def split_original_training_set(self, original_training_set):
+    @staticmethod
+    def split_data_set_into_i_o(data_set):
+        data_set_input = data_set[:, 0:-1]
+        data_set_output = data_set[:, -1]
+
+        # Ensure data_set_output is defined by a 2d tuple
+        m = data_set_output.shape
+        data_set_output = np.reshape(data_set_output, (m[0], 1))
+
+        return data_set_input, data_set_output
+
+    """
+    Name       :
+    Purpose    : 
+    Parameters :
+    Return     :
+    Notes      :
+    """
+    @staticmethod
+    def split_original_training_set(original_training_set):
         # Number of training examples
         m = len(original_training_set)
 
         # Print the number of training examples
-        print("There are %d training examples in the original training set.")
+        print("There are %d training examples in the original training set.\n" % m)
 
         # Set indices for each of the three data sets
         training_set_lower_index = 0
@@ -319,7 +370,7 @@ class LearningAlgorithm:
 
         # Create the three data sets
         training_set = original_training_set[training_set_lower_index:training_set_upper_index][:]
-        cross_validation_set = original_training_set[cv_set_lower_index:cv_set_upper_index][:]
+        cv_set = original_training_set[cv_set_lower_index:cv_set_upper_index][:]
         test_set = original_training_set[test_set_lower_index:test_set_upper_index][:]
 
         # Ensure Training set has a 2D size
@@ -328,32 +379,46 @@ class LearningAlgorithm:
             training_set = np.reshape(training_set, tuple_training_set)
 
         # Ensure Cross Validation set has a 2D size
-        if len(cross_validation_set.shape) == 1:
-            tuple_cross_validation_set = (cross_validation_set.shape[0], 1)
-            cross_validation_set = np.reshape(cross_validation_set, tuple_cross_validation_set)
+        if len(cv_set.shape) == 1:
+            tuple_cv_set = (cv_set.shape[0], 1)
+            cv_set = np.reshape(cv_set, tuple_cv_set)
 
         # Ensure Test set has a 2D size
         if len(test_set.shape) == 1:
-            tuple_test_set = (cross_validation_set.shape[0], 1)
+            tuple_test_set = (test_set.shape[0], 1)
             test_set = np.reshape(test_set, tuple_test_set)
 
         # Obtain the number of training examples in each set
         m_training_set = np.shape(training_set)[0]
-        m_cross_validation_set = np.shape(cross_validation_set)[0]
+        m_cv_set = np.shape(cv_set)[0]
         m_test_set = np.shape(test_set)[0]
+        total = m_training_set + m_cv_set + m_test_set
 
         # Create string format specifiers
-        header_fs = "{head0:^25.25s} | {head1:^25.25s} | {head2:^25.25s}"
-        set_fs = "{col0:^25d} | {col1:^25d} | {col2:^25d}"
+        header_fs = "{head0:^25.25s} | {head1:^25.25s} | {head2:^25.25s} | {head3:^25.25s}"
+        set_fs = "{col0:^25d} | {col1:^25d} | {col2:^25d} | {col3:^25d}"
+        underline_fs = "{:-^100}"
 
         # Output set data
         print("Number of examples in each training set: \n")
-        header_fs.format(head0="Training Set", head1="Cross Validation Set", head2="Test Set")
-        set_fs.format(col0=m_training_set, col1=m_cross_validation_set, col2=m_test_set)
+        print(header_fs.format(head0="Training Set", head1="Cross Validation Set", head2="Test Set", head3="Total"))
+        print(underline_fs.format(''))
+        print(set_fs.format(col0=m_training_set, col1=m_cv_set, col2=m_test_set, col3=total))
 
-        return training_set, cross_validation_set, test_set
+        return training_set, cv_set, test_set
 
-    '''
+    """
+    Name       :
+    Purpose    : 
+    Parameters :
+    Return     :
+    Notes      :
+    """
+    def lambda_selection(self, train_set_input, train_set_output, cv_set_input, cv_set_output, num_classes):
+        return
+
+
+    """
     Name       : store_parameters
     Purpose    : To write the learned parameter values to a csv file
     Parameters : theta_values which is a matrix of learned parameter values
@@ -361,7 +426,7 @@ class LearningAlgorithm:
     Notes      : 
         This function truncates any data already in the csv file
         theta_values has dimensions: (number of classes x number of features)    
-    '''
+    """
     @staticmethod
     def store_parameters(theta_values):
         file_name = 'parameter_values.csv'
@@ -378,3 +443,10 @@ class LearningAlgorithm:
         param_file.close()
 
         return
+
+
+def main():
+    return
+
+if __name__ == "__main__":
+    main()

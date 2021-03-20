@@ -2,30 +2,37 @@ from PIL import Image as img
 import csv
 import numpy as np
 
-'''
+"""
 File Name   :
 Author      :
 Date        :
 Description :
-'''
+"""
 
 
 class DataCollection:
 
+    """
+    Name       :
+    Purpose    :
+    Parameters :
+    Return     :
+    Notes      :
+    """
     def __init__(self):
         self.show_images = False
         self.class_ht = None
         self.total_number_of_examples = 0
-        self.csv_data_base_name = 'input_and_output_data_test.csv'
+        self.csv_data_base_name = 'input_and_output_data.csv'
         self.class_data_name = "class_data.csv"
 
-    '''
-    Name       : 
-    Purpose    : 
-    Parameters : 
-    Return     : 
+    """
+    Name       :
+    Purpose    :
+    Parameters :
+    Return     :
     Notes      :
-    '''
+    """
     def top_data_collection(self):
         # Load in class data
         self.read_class_data()
@@ -52,13 +59,13 @@ class DataCollection:
 
         return
 
-    '''
-    Name       : 
-    Purpose    : 
-    Parameters : 
-    Return     : 
+    """
+    Name       :
+    Purpose    :
+    Parameters :
+    Return     :
     Notes      :
-    '''
+    """
     def top_partition_image(self, class_number, file_name, file_type, single_img: bool) -> None:
         if class_number == -1 or single_img:
             self.partition_image((file_name + file_type), class_number, self.total_number_of_examples)
@@ -74,13 +81,13 @@ class DataCollection:
                 return
         return
 
-    '''
+    """
     Name       : 
     Purpose    : 
     Parameters : 
     Return     : The number of examples data has been collected for
     Notes      :
-    '''
+    """
     def partition_image(self, file_name: str, class_index: int, total_count: int) -> None:
         # Read in the RGB image and display it
         image_rgb = img.open(file_name)
@@ -90,8 +97,6 @@ class DataCollection:
         if self.show_images:
             image_rgb.show()
 
-        r, g, b = image_rgb.getpixel((1, 1))
-
         # Obtain Image height, width == 1200, 1600
         height = image_rgb.height
         width = image_rgb.width
@@ -100,7 +105,6 @@ class DataCollection:
         m = 40
         n = 40
 
-        #curr_image_num = 0
         for row in range(m, height + 1, m):
             for col in range(n, width + 1, n):
                 # Pixel Box Boundaries
@@ -136,20 +140,18 @@ class DataCollection:
                 self.write_data_to_data_base(data_pixel_box_array, self.csv_data_base_name)
 
                 # Show count
-                #curr_image_num += 1
                 self.total_number_of_examples += 1
-                #print("Current CSV index: " + str(self.total_number_of_examples))
 
         print("Done Writing Data")
         return
 
-    '''
-    Name       : 
-    Purpose    : 
-    Parameters : 
-    Return     : 
+    """
+    Name       :
+    Purpose    :
+    Parameters :
+    Return     :
     Notes      :
-    '''
+    """
     @staticmethod
     def file_name_prompt() -> tuple:
         # Prompt user for number of file inputs
@@ -187,13 +189,13 @@ class DataCollection:
 
         return file_name, file_extension, single_file_flag
 
-    '''
-    Name       : 
-    Purpose    : 
-    Parameters : 
-    Return     : 
+    """
+    Name       :
+    Purpose    :
+    Parameters :
+    Return     :
     Notes      :
-    '''
+    """
     def batch_vs_individual_prompt(self) -> int:
         # Return value instantiation
         batch_class_num = -1
@@ -215,13 +217,13 @@ class DataCollection:
 
         return batch_class_num
 
-    '''
-    Name       : 
-    Purpose    : 
-    Parameters : 
-    Return     : 
+    """
+    Name       :
+    Purpose    :
+    Parameters :
+    Return     :
     Notes      :
-    '''
+    """
     def class_number_prompt(self) -> int:
         user_input_class_number = -1
         while True:
@@ -248,13 +250,13 @@ class DataCollection:
 
         return user_input_class_number
 
-    '''
-    Name       : 
-    Purpose    : 
-    Parameters : 
-    Return     : 
+    """
+    Name       :
+    Purpose    :
+    Parameters :
+    Return     :
     Notes      :
-    '''
+    """
     def individually_assign_class_prompt(self, subpixel_box) -> int:
         class_number = -1
         while class_number == -1:
@@ -263,13 +265,13 @@ class DataCollection:
             class_number = self.class_number_prompt()
         return class_number
 
-    '''
-    Name       : 
-    Purpose    : 
-    Parameters : 
-    Return     : 
+    """
+    Name       :
+    Purpose    :
+    Parameters :
+    Return     :
     Notes      :
-    '''
+    """
     @staticmethod
     def write_data_to_data_base(pixel_data: list, csv_file_name: str) -> None:
         with open(csv_file_name, mode='a') as storage:
@@ -277,7 +279,7 @@ class DataCollection:
             data_writer.writerow(pixel_data)
         return
 
-    '''
+    """
     Name       : 
     Purpose    : 
     Parameters : 
@@ -285,7 +287,7 @@ class DataCollection:
     Notes      :
             key == class number
             value == (class name:str , number_examples: int)
-    '''
+    """
     def read_class_data(self) -> None:
         try:
             with open(self.class_data_name) as class_data_csv:
@@ -315,7 +317,7 @@ class DataCollection:
 
         return
 
-    '''
+    """
     Name       : 
     Purpose    : 
     Parameters : 
@@ -323,7 +325,7 @@ class DataCollection:
     Notes      :
             key == class number
             value == (class name:str , number_examples: int)
-    '''
+    """
     def write_class_data(self) -> None:
         file_name = self.class_data_name
 
@@ -341,13 +343,13 @@ class DataCollection:
 
         return
 
-    '''
-    Name       : 
-    Purpose    : 
-    Parameters : 
-    Return     : 
+    """
+    Name       :
+    Purpose    :
+    Parameters :
+    Return     :
     Notes      :
-    '''
+    """
     def display_class_data(self) -> None:
         print("The current class data is as follows: ")
 
@@ -369,13 +371,13 @@ class DataCollection:
         print("\n")
         return
 
-    '''
-    Name       : 
-    Purpose    : 
-    Parameters : 
-    Return     : 
+    """
+    Name       :
+    Purpose    :
+    Parameters :
+    Return     :
     Notes      :
-    '''
+    """
     @staticmethod
     def collect_more_data_prompt() -> bool:
         while True:
@@ -388,19 +390,20 @@ class DataCollection:
                 print("Input Error: Try again.\n")
 
 
-'''
-Name       : 
-Purpose    : 
-Parameters : 
-Return     : 
+"""
+Name       :
+Purpose    :
+Parameters :
+Return     :
 Notes      :
-'''
+"""
 
 
 def main():
     obj_data_collection = DataCollection()
     obj_data_collection.top_data_collection()
     return
+
 
 if __name__ == '__main__':
     main()

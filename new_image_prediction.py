@@ -294,13 +294,13 @@ class ImagePrediction:
 
         return g
 
-    '''
+    """
     Name       :
-    Purpose    : 
+    Purpose    :
     Parameters :
     Return     :
     Notes      :
-    '''
+    """
     @staticmethod
     def write_binary_matrix(binary_matrix):
         file_name = 'imaging_matrix.csv'
@@ -319,12 +319,12 @@ class ImagePrediction:
         return
 
     '''
-        Name       :
-        Purpose    : 
-        Parameters :
-        Return     :
-        Notes      :
-        '''
+    Name       :
+    Purpose    : 
+    Parameters :
+    Return     :
+    Notes      :
+    '''
     def read_parameters(self):
         data = np.loadtxt(open(self.parameter_file_name), delimiter=",", dtype='float32')
         parameters = data[:, :]
