@@ -22,33 +22,27 @@ class LearningAlgorithm:
         (input_data, output_data) = self.randomize_matrix_row_data(input_data, output_data)
 
         # Split data set into 3 data sets
-        og_data_set = np.concatenate((input_data, output_data), axis=1)
-        training_set, cv_set, test_set = self.split_original_training_set(og_data_set)
+        training_set, cv_set, test_set = self.split_original_training_set(input_data, output_data)
 
         # Split each data set into input output
         training_set_input, training_set_output = self.split_data_set_into_i_o(training_set)
         cv_set_input, cv_set_output = self.split_data_set_into_i_o(cv_set)
         test_set_input, test_set_output = self.split_data_set_into_i_o(test_set)
 
-        # Find the optimal learning constant
-        learning_constant = self.lambda_selection(training_set[:, 0:-1], training_set[:, -1],
-                              cv_set[:, 0:-1], training_set[:, -1], self.num_classes)
+        # Find the optimal regularization constant
+        regularization_constant = self.lambda_selection(training_set_input, training_set_output, cv_set_input,
+                                                  cv_set_output, self.num_classes)
 
         # Find the optimum values for theta
         parameter_values = self.one_vs_all(input_data, output_data, self.num_classes, 0.1)
 
         # Test for One versus all prediction
         result = self.predict_one_vs_all(parameter_values, input_data)
-        for row in range(np.size(result)):
-            a = result[row]
-            b = output_data[row]
-            if (result[row] == output_data[row]):
-                result[row] = 1.0
-            else:
-                result[row] = 0.0
-        training_accuracy = (np.sum(result) / np.size(result)) * 100.0
-        print('\nTraining Set Accuracy : %.3f\n' % training_accuracy)
 
+        # Metrics for the given set of parameters
+        self.metrics(result, output_data)
+
+        # Store the optimized parameters in csv
         self.store_parameters(parameter_values)
 
         return parameter_values
@@ -63,14 +57,10 @@ class LearningAlgorithm:
     def load_matrix_data(self):
         data = np.loadtxt(open('input_and_output_data.csv'), delimiter=",", dtype='float32')
         X, y = self.split_data_set_into_i_o(data)
-        """
-        X = data[:, 0: -1]
-        y = data[:, -1]
 
-        # Ensure y is defined by a 2d tuple
-        m = y.shape
-        y = np.reshape(y, (m[0], 1))
-        """
+        #X = data[:, 0: -1]
+        #y = data[:, -1]
+
         self.num_classes = len(np.unique(y))
         return X, y
 
@@ -308,6 +298,10 @@ class LearningAlgorithm:
                 The plus 1 denotes the output column vector being added to the input data matrix
     """
     def randomize_matrix_row_data(self, input_data_matrix, output_data_vector):
+        # Ensure the output vector is defined by a 2d tuple
+        m = output_data_vector.shape
+        output_data_vector = np.reshape(output_data_vector, (m[0], 1))
+
         # Concatenate input and output data into one data matrix
         data_matrix = np.concatenate((input_data_matrix, output_data_vector), axis=1)
 
@@ -321,9 +315,9 @@ class LearningAlgorithm:
         (m, n) = copy_data_matrix.shape
 
         # Split data accordingly
-        random_input_data, random_output_data = self.split_data_set_into_i_o(copy_data_matrix)
-        #random_input_data = copy_data_matrix[:, 0:n-1]
-        #random_output_data = copy_data_matrix[:, n-1]
+        #random_input_data, random_output_data = self.split_data_set_into_i_o(copy_data_matrix)
+        random_input_data = copy_data_matrix[:, 0:n-1]
+        random_output_data = copy_data_matrix[:, n-1]
 
         return random_input_data, random_output_data
 
@@ -340,8 +334,8 @@ class LearningAlgorithm:
         data_set_output = data_set[:, -1]
 
         # Ensure data_set_output is defined by a 2d tuple
-        m = data_set_output.shape
-        data_set_output = np.reshape(data_set_output, (m[0], 1))
+        #m = data_set_output.shape
+        #data_set_output = np.reshape(data_set_output, (m[0], 1))
 
         return data_set_input, data_set_output
 
@@ -353,7 +347,12 @@ class LearningAlgorithm:
     Notes      :
     """
     @staticmethod
-    def split_original_training_set(original_training_set):
+    def split_original_training_set(data_set_input, data_set_output):
+        # Combine input and output data
+        m = data_set_output.shape
+        data_set_output = np.reshape(data_set_output, (m[0], 1))
+        original_training_set = np.concatenate((data_set_input, data_set_output), axis=1)
+
         # Number of training examples
         m = len(original_training_set)
 
@@ -373,6 +372,7 @@ class LearningAlgorithm:
         cv_set = original_training_set[cv_set_lower_index:cv_set_upper_index][:]
         test_set = original_training_set[test_set_lower_index:test_set_upper_index][:]
 
+        """
         # Ensure Training set has a 2D size
         if len(training_set.shape) == 1:
             tuple_training_set = (training_set.shape[0], 1)
@@ -387,6 +387,7 @@ class LearningAlgorithm:
         if len(test_set.shape) == 1:
             tuple_test_set = (test_set.shape[0], 1)
             test_set = np.reshape(test_set, tuple_test_set)
+        """
 
         # Obtain the number of training examples in each set
         m_training_set = np.shape(training_set)[0]
@@ -417,6 +418,65 @@ class LearningAlgorithm:
     def lambda_selection(self, train_set_input, train_set_output, cv_set_input, cv_set_output, num_classes):
         return
 
+    """
+    Name       :
+    Purpose    : 
+    Parameters :
+    Return     :
+    Notes      :
+    """
+    def metrics(self, predicted_output, actual_output):
+        # Precision, Recall, Accuracy, F_Score array initialization
+        precision_arr = np.zeros((self.num_classes, 1))
+        recall_arr = np.zeros((self.num_classes, 1))
+        accuracy_arr = np.zeros((self.num_classes, 1))
+        f_score_arr = np.zeros((self.num_classes, 1))
+
+        # Find precision and recall for each class
+        for i in range(self.num_classes):
+            tp = 0
+            fp = 0
+            fn = 0
+            tn = 0
+            for j in range(len(predicted_output)):
+                # Tabulate tp, fp, fn for class i
+                if predicted_output[j] == i and actual_output[j] == i:
+                    tp += 1
+                elif predicted_output[j] == i and actual_output[j] != i:
+                    fp += 1
+                elif predicted_output[j] != i and actual_output[j] == i:
+                    fn += 1
+                elif predicted_output[j] != i and actual_output[j] != i and (predicted_output[j] == actual_output[j]):
+                    tn += 1
+
+            # Calculate precision and recall for class i
+            precision_arr[i] = tp / (tp + fp)
+            recall_arr[i] = tp / (tp + fn)
+
+            # Calculate Accuracy for the given class
+            accuracy_arr[i] = (tp + tn) / (tp + fp + fn + tn)
+
+            # Calculate F_score for the given class
+            f_score_arr[i] = (2 * precision_arr[i] * recall_arr[i]) / (precision_arr[i] + recall_arr[i])
+
+        # Set data format strings
+        header_f_str = "{head0:^20s} | {head1:^20s} | {head2:^20s} | {head3:^20s} | {head4:^20s}"
+        class_f_str = "{col0:^20.25s} | {col1:^20.4f} | {col2:^20.4f} | {col3:^20.4f} | {col4:^20.4f}"
+
+        # Print the Header data
+        print(header_f_str.format(head0="Class Name", head1="Precision", head2="Recall", head3="F Score",
+                                  head4="Accuracy"))
+        # Header/Metrics Data separator
+        underline_fs = "{:-^125}"
+        print(underline_fs.format(''))
+
+        # Print Metrics Data
+        for j in range(self.num_classes):
+            class_name = "Class " + str(j)
+            print(class_f_str.format(col0=class_name, col1=precision_arr[j][0], col2=recall_arr[j][0],
+                                     col3=f_score_arr[j][0], col4=accuracy_arr[j][0]))
+
+        return precision_arr, recall_arr, f_score_arr, accuracy_arr
 
     """
     Name       : store_parameters
@@ -446,6 +506,22 @@ class LearningAlgorithm:
 
 
 def main():
+    test = LearningAlgorithm()
+    test.top_learning_algorithm()
+
+    """
+    test.num_classes = 3
+
+    predicted_arr =[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2]
+    actual_arr = [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 0, 1, 1, 0, 1, 1, 2, 2, 2, 2, 2, 2]
+    predicted_arr = np.array(predicted_arr)
+    actual_arr = np.array(actual_arr)
+    predicted_arr = np.reshape(predicted_arr, (25, 1))
+    actual_arr = np.reshape(actual_arr, (25, 1))
+
+
+    test.metrics(predicted_arr, actual_arr)
+    """
     return
 
 if __name__ == "__main__":
