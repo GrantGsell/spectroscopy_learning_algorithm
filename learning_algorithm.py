@@ -31,7 +31,7 @@ class LearningAlgorithm:
 
         # Find the optimal regularization constant
         regularization_constant = self.lambda_selection(training_set_input, training_set_output, cv_set_input,
-                                                  cv_set_output, self.num_classes)
+                                                  cv_set_output)
 
         # Find the optimum values for theta
         parameter_values = self.one_vs_all(input_data, output_data, self.num_classes, 0.1)
@@ -415,8 +415,85 @@ class LearningAlgorithm:
     Return     :
     Notes      :
     """
-    def lambda_selection(self, train_set_input, train_set_output, cv_set_input, cv_set_output, num_classes):
-        return
+    def lambda_selection(self, train_set_input, train_set_output, cv_set_input, cv_set_output):
+        # Lambda Value Upper bound, step size, vector size
+        lambda_upper = 0.5 #1.0 #10.0
+        lambda_step = 0.05
+        lambda_size = int(lambda_upper / lambda_step)
+
+        # Lambda Vector values
+        lambda_vector = np.zeros((lambda_size, 1))
+        val = 0.0
+        for j in range(lambda_size):
+            lambda_vector[j] = val
+            val += lambda_step
+
+        # Length of lambda vector
+        ll, temp = lambda_vector.shape
+
+        # Return array initialization
+        train_accuracy = np.zeros((ll, self.num_classes))
+        cross_validation_accuracy = np.zeros((ll, self.num_classes))
+
+        # Generate Training error values based on lambda values
+        for i in range(ll):
+            # Obtain the optimal values for theta using regularization
+            optim_thetas = self.one_vs_all(train_set_input, train_set_output, self.num_classes, (lambda_vector[i])[0])
+
+            # Make predictions for training set
+            prediction_ts = self.predict_one_vs_all(optim_thetas, train_set_input)
+
+            # Make predictions for CV set
+            prediction_cv = self.predict_one_vs_all(optim_thetas, cv_set_input)
+
+            # Run metrics for test set
+            _, _, _, test = self.metrics(prediction_ts, train_set_output)
+            train_accuracy[i, :] = np.transpose(test)
+
+            # Run metrics for cv set
+            _, _, _,  test= self.metrics(prediction_cv, cv_set_output)
+            cross_validation_accuracy[i, :] = np.transpose(test)
+
+        # Print the class accuracy with associated lambda value
+        header_f_str = "{head0:^20.20s} | {head1:^20.20s} | {head2:^20.20s} | {head3:^20.20s} | " \
+                       "{head4:^20.20s} | {head5:^20.20s} | {head6:^20.20s}"
+        data_f_str = "{col0:^20.5f} | {col1:^20.5f} | {col2:^20.5f} | {col3:^20.5f} | " \
+                     "{col4:^20.5f} | {col5:^20.5f} | {col6:^20.5f}"
+
+        # Print Header data
+        print(header_f_str.format(head0="Lambda Value" ,head1="Class 0 TS Accuracy" ,head2="Class 1 TS Accuracy",
+                                  head3="Class 2 TS Accuracy" ,head4="Class 0 CV Accuracy" ,head5="Class 1 CV Accuracy",
+                                  head6="Class 2 CV Accuracy" ,))
+
+        # Header/Metrics Data separator
+        underline_fs = "{:-^125}"
+        print(underline_fs.format(''))
+
+        # Print Lambda/Metrics
+        for k in range(ll):
+            print(data_f_str.format(col0=(lambda_vector[k])[0], col1=train_accuracy[k, 0], col2=train_accuracy[k, 1],
+                              col3=train_accuracy[k, 2], col4=cross_validation_accuracy[k, 0],
+                              col5=cross_validation_accuracy[k, 1], col6=cross_validation_accuracy[k, 2]))
+
+        """    
+        # Plot the training error and validation error vs value of lambda
+        plt.plot(train_error, lambda_vector, 'r')
+        plt.plot(cross_validation_error, lambda_vector, 'b')
+        plt.title("Training Error, Cross Validation Error vs. Lambda Values")
+        plt.table([["Training Error"], ["Cross Validation Error"]], [['r'], ['b']])
+        plt.grid(True, 'both', 'both')
+        plt.xlabel("Lambda Value")
+        plt.ylabel("Cost")
+
+        # Find the lambda value associated with the lowest cv error
+        optimal_lambda = lambda_vector[0]
+        temp_cv_error = cross_validation_error[0]
+        for j in range(1, ll):
+            if cross_validation_error[j] < temp_cv_error:
+                optimal_lambda = lambda_vector[j]
+                temp_cv_error = cross_validation_error[j]
+        """
+        return 0#optimal_lambda
 
     """
     Name       :
@@ -450,8 +527,16 @@ class LearningAlgorithm:
                     tn += 1
 
             # Calculate precision and recall for class i
-            precision_arr[i] = tp / (tp + fp)
-            recall_arr[i] = tp / (tp + fn)
+            try:
+                precision_arr[i] = tp / (tp + fp)
+            except ZeroDivisionError:
+                print("Divide by zero mess up!")
+                precision_arr[i] = 0
+            try:
+                recall_arr[i] = tp / (tp + fn)
+            except ZeroDivisionError:
+                print("Divide by zero mess up!")
+                recall_arr[i] = 0
 
             # Calculate Accuracy for the given class
             accuracy_arr[i] = (tp + tn) / (tp + fp + fn + tn)
@@ -459,6 +544,7 @@ class LearningAlgorithm:
             # Calculate F_score for the given class
             f_score_arr[i] = (2 * precision_arr[i] * recall_arr[i]) / (precision_arr[i] + recall_arr[i])
 
+        """
         # Set data format strings
         header_f_str = "{head0:^20s} | {head1:^20s} | {head2:^20s} | {head3:^20s} | {head4:^20s}"
         class_f_str = "{col0:^20.25s} | {col1:^20.4f} | {col2:^20.4f} | {col3:^20.4f} | {col4:^20.4f}"
@@ -475,6 +561,7 @@ class LearningAlgorithm:
             class_name = "Class " + str(j)
             print(class_f_str.format(col0=class_name, col1=precision_arr[j][0], col2=recall_arr[j][0],
                                      col3=f_score_arr[j][0], col4=accuracy_arr[j][0]))
+        """
 
         return precision_arr, recall_arr, f_score_arr, accuracy_arr
 
