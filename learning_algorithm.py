@@ -361,33 +361,26 @@ class LearningAlgorithm:
 
         # Set indices for each of the three data sets
         training_set_lower_index = 0
-        training_set_upper_index = int(m * 0.6) - 1
-        cv_set_lower_index = training_set_upper_index + 1
-        cv_set_upper_index = int(m * 0.2) + training_set_upper_index
-        test_set_lower_index = cv_set_upper_index + 1
-        test_set_upper_index = int(m * 0.2) + cv_set_upper_index
+        training_set_upper_index = int(m * 0.6)
+        cv_set_lower_index = training_set_upper_index
+        cv_set_upper_index = int(m * 0.2) + cv_set_lower_index
+        test_set_lower_index = cv_set_upper_index
+        test_set_upper_index = int(m * 0.2) + test_set_lower_index
+
+        # Determine if any examples were missed
+        delta = m - test_set_upper_index
+        if delta > 0:
+            training_set_upper_index += delta
+            cv_set_lower_index += delta
+            cv_set_upper_index += delta
+            test_set_lower_index += delta
+            test_set_upper_index += delta
+
 
         # Create the three data sets
         training_set = original_training_set[training_set_lower_index:training_set_upper_index][:]
         cv_set = original_training_set[cv_set_lower_index:cv_set_upper_index][:]
         test_set = original_training_set[test_set_lower_index:test_set_upper_index][:]
-
-        """
-        # Ensure Training set has a 2D size
-        if len(training_set.shape) == 1:
-            tuple_training_set = (training_set.shape[0], 1)
-            training_set = np.reshape(training_set, tuple_training_set)
-
-        # Ensure Cross Validation set has a 2D size
-        if len(cv_set.shape) == 1:
-            tuple_cv_set = (cv_set.shape[0], 1)
-            cv_set = np.reshape(cv_set, tuple_cv_set)
-
-        # Ensure Test set has a 2D size
-        if len(test_set.shape) == 1:
-            tuple_test_set = (test_set.shape[0], 1)
-            test_set = np.reshape(test_set, tuple_test_set)
-        """
 
         # Obtain the number of training examples in each set
         m_training_set = np.shape(training_set)[0]
@@ -432,8 +425,8 @@ class LearningAlgorithm:
         ll, temp = lambda_vector.shape
 
         # Return array initialization
-        train_accuracy = np.zeros((ll, self.num_classes))
-        cross_validation_accuracy = np.zeros((ll, self.num_classes))
+        train_f_score = np.zeros((ll, self.num_classes))
+        cross_validation_f_score = np.zeros((ll, self.num_classes))
 
         # Generate Training error values based on lambda values
         for i in range(ll):
@@ -447,12 +440,12 @@ class LearningAlgorithm:
             prediction_cv = self.predict_one_vs_all(optim_thetas, cv_set_input)
 
             # Run metrics for test set
-            _, _, _, test = self.metrics(prediction_ts, train_set_output)
-            train_accuracy[i, :] = np.transpose(test)
+            _, _, test, _ = self.metrics(prediction_ts, train_set_output)
+            train_f_score[i, :] = np.transpose(test)
 
             # Run metrics for cv set
-            _, _, _,  test= self.metrics(prediction_cv, cv_set_output)
-            cross_validation_accuracy[i, :] = np.transpose(test)
+            _, _, test, _ = self.metrics(prediction_cv, cv_set_output)
+            cross_validation_f_score[i, :] = np.transpose(test)
 
         # Print the class accuracy with associated lambda value
         header_f_str = "{head0:^20.20s} | {head1:^20.20s} | {head2:^20.20s} | {head3:^20.20s} | " \
@@ -461,9 +454,9 @@ class LearningAlgorithm:
                      "{col4:^20.5f} | {col5:^20.5f} | {col6:^20.5f}"
 
         # Print Header data
-        print(header_f_str.format(head0="Lambda Value" ,head1="Class 0 TS Accuracy" ,head2="Class 1 TS Accuracy",
-                                  head3="Class 2 TS Accuracy" ,head4="Class 0 CV Accuracy" ,head5="Class 1 CV Accuracy",
-                                  head6="Class 2 CV Accuracy" ,))
+        print(header_f_str.format(head0="Lambda Value", head1="Class 0 TS F Score", head2="Class 1 TS F Score",
+                                  head3="Class 2 TS F Score", head4="Class 0 CV F Score", head5="Class 1 CV F Score",
+                                  head6="Class 2 CV F Score"))
 
         # Header/Metrics Data separator
         underline_fs = "{:-^125}"
@@ -471,9 +464,9 @@ class LearningAlgorithm:
 
         # Print Lambda/Metrics
         for k in range(ll):
-            print(data_f_str.format(col0=(lambda_vector[k])[0], col1=train_accuracy[k, 0], col2=train_accuracy[k, 1],
-                              col3=train_accuracy[k, 2], col4=cross_validation_accuracy[k, 0],
-                              col5=cross_validation_accuracy[k, 1], col6=cross_validation_accuracy[k, 2]))
+            print(data_f_str.format(col0=(lambda_vector[k])[0], col1=train_f_score[k, 0], col2=train_f_score[k, 1],
+                                    col3=train_f_score[k, 2], col4=cross_validation_f_score[k, 0],
+                                    col5=cross_validation_f_score[k, 1], col6=cross_validation_f_score[k, 2]))
 
         """    
         # Plot the training error and validation error vs value of lambda
