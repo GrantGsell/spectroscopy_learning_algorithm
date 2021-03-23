@@ -53,10 +53,10 @@ class LearningAlgorithm:
     Name       : load_matrix_data
     Purpose    : To read in the input and output data from csv files.
     Parameters : None
-    Return     : Two matricies X which denotes the input data for the problem, and 
-                    Y which denotes the output data for the problem.
+    Return     : A tuple with two elements, a matrix (ndarray) X which denotes the input data for the problem, and a 
+                    matrix (ndarray) y which denotes the output data for the problem.
     '''
-    def load_matrix_data(self):
+    def load_matrix_data(self) -> tuple:
         data = np.loadtxt(open('input_and_output_data.csv'), delimiter=",", dtype='float32')
         X, y = self.split_data_set_into_i_o(data)
         X = self.feature_scaling(X)
@@ -70,11 +70,11 @@ class LearningAlgorithm:
     Return     : g a column vector denoting the hypothesis calculation for each 
                     example
     Notes      :
-                Before the sigmoid function can be called we need to multiply 
+                 Before the sigmoid function can be called we need to multiply 
                     X * theta
-                theta has dimensions: (number of features x 1)
-                X has dimensions    : (number of examples x number of features)
-                g has dimensions    : (number of examples x 1)
+                 theta has dimensions: (number of features x 1)
+                 X has dimensions    : (number of examples x number of features)
+                 g has dimensions    : (number of examples x 1)
     '''
     @staticmethod
     def sigmoid_hypothesis(theta, X) -> np.ndarray:
@@ -166,12 +166,10 @@ class LearningAlgorithm:
 
     '''
     Name       : one_vs_all
-    Purpose    : trains multiple logistic regression classifiers and returns all
-                 the classifiers in a matrix all_theta, where the i-th row of all_theta 
-                 corresponds to the classifier for label i.
-    Parameters : X which is the input values, y which is the output values, num_labels
-                 which is the number of classes we have, and lambdaConst which is 
-                 the regularization constant.
+    Purpose    : trains multiple logistic regression classifiers and returns all the classifiers in a matrix all_theta, 
+                    where the i-th row of all_theta corresponds to the classifier for label i.
+    Parameters : X which is the input values, y which is the output values, num_labels which is the number of classes 
+                    we have, and lambdaConst which is the regularization constant.
     Return     :
     Notes      :
                  X has dimensions         : (number of training examples x number 
@@ -185,7 +183,7 @@ class LearningAlgorithm:
         n = np.size(X, 1)
 
         # Initialize output matrix
-        all_theta = np.zeros((num_labels, n + 1))
+        all_theta = np.zeros((self.num_classes, n + 1))
 
         # Add the bias unit to each input example as the first column
         ones_column_vector = np.zeros((m, 1)) + 1.0
@@ -195,7 +193,7 @@ class LearningAlgorithm:
         initial_theta = np.zeros((n + 1, 1))
 
         # Generate classifiers for each class
-        for num in range(num_labels):
+        for num in range(self.num_classes):
             new_y = self.logical_array(y, num)
             res = optim.minimize(
                 fun=self.lr_cost_function_regularized,
@@ -213,17 +211,15 @@ class LearningAlgorithm:
 
     '''
     Name       : logical_array
-    Purpose    : To generate a logical array of 1 or 0 values based on if the 
-                    current element in the given array is equal to the current 
-                    number.
-    Parameters : output_arr which is an array denoting the respective class the ith
-                    element of the given array belongs to, curr_num which is the 
-                    current class number.
+    Purpose    : To generate a logical array of 1 or 0 values based on if the current element in the given array is 
+                    equal to the current class number.
+    Parameters : output_arr which is an array denoting the respective class the ith element of the given array belongs 
+                    to, curr_num which is the current class number.
     Return     : A logical array of one and zero values.
-    Notes      : This function allows for one-versus-all multi-class classification
-                    problems.
+    Notes      : This function allows for one-versus-all multi-class classification problems.
     '''
-    def logical_array(self, output_arr, curr_num) -> np.ndarray:
+    @staticmethod
+    def logical_array(output_arr, curr_num) -> np.ndarray:
         logical_array = output_arr.copy()
         for row in range(np.size(logical_array)):
             if (logical_array[row] == curr_num):
@@ -234,12 +230,15 @@ class LearningAlgorithm:
 
     '''
     Name       : predict_one_vs_all
-    Purpose    : 
+    Purpose    : To make a prediction on each example m, on which class the example most likely belongs to.
     Parameters : all_theta, which is a matrix denoting the learned parameters, X
                     which is a matrix denoting the input training data.
     Return     : predict which is a row vector denoting the class each example is
                     is most likely to belong to.
     Notes      :
+                 all_theta has dimensions: (number of features + 1 x 1)
+                 X has dimensions: (number of examples x number of features)
+                 predict had dimensions: (number of examples x 1)
     '''
     def predict_one_vs_all(self, all_theta, X) -> np.ndarray:
         # Number of training examples
@@ -269,17 +268,17 @@ class LearningAlgorithm:
 
     """
     Name       : randomize_matrix_row_data
-    Purpose    : To synchronously randomize the input and output data
+    Purpose    : To synchronously randomize the input and output data.
     Parameters : input_data_matrix which is the input data matrix, output_data_vector which is the output data vector.
     Return     : A tuple with two elements, random_input_data which denotes the randomized input data matrix, and 
                     random_output_data which denotes the randomized output data matrix. 
     Notes      :
-                random_input_data has dimensions:  (number of examples x number of features).
-                random_output_data has dimensions: (number of examples x 1).
-                The ith row of random_input_data corresponds to the ith row of random_output_data.
-                data_matrix is a concatenation of the input and output data column-wise.
-                data_matrix has dimensions (number of examples x number of features + 1).
-                    The plus 1 denotes the output column vector being added to the input data matrix.
+                 random_input_data has dimensions:  (number of examples x number of features).
+                 random_output_data has dimensions: (number of examples x 1).
+                 The ith row of random_input_data corresponds to the ith row of random_output_data.
+                 data_matrix is a concatenation of the input and output data column-wise.
+                 data_matrix has dimensions (number of examples x number of features + 1).
+                     The plus 1 denotes the output column vector being concatenated to the input data matrix.
     """
     def randomize_matrix_row_data(self, input_data_matrix, output_data_vector):
         # Ensure the output vector is defined by a 2d tuple
@@ -295,33 +294,32 @@ class LearningAlgorithm:
         # Randomize data matrix
         np.random.shuffle(copy_data_matrix)
 
-        # Matrix data
-        (m, n) = copy_data_matrix.shape
-
         # Split data accordingly
         random_input_data, random_output_data = self.split_data_set_into_i_o(copy_data_matrix)
 
         return random_input_data, random_output_data
 
     """
-    Name       :
-    Purpose    : 
-    Parameters :
-    Return     :
+    Name       : split_data_set_into_i_o
+    Purpose    : To split the given data set matrix (ndarray) into input and output matrices.
+    Parameters : One matrix (ndarray) data_set.
+    Return     : A tuple with two elements, data_set_input which is the input data, data_set_output which is the output
+                    data.
     Notes      :
+                 data_set_input has dimensions (number of examples x number of features).
+                 data_set_output has dimensions (number of examples x 1).
     """
     @staticmethod
     def split_data_set_into_i_o(data_set):
         data_set_input = data_set[:, 0:-1]
         data_set_output = data_set[:, -1]
-
         return data_set_input, data_set_output
 
     """
     Name       : split_original_training_set
     Purpose    : To divide the original training set into a new training set, cross validation set, and test set.
     Parameters : Two matrices the first containing the input data, the second containing the output data.
-    Return     : A tuple of three matrices denoting the training set, cross validation set, and the test set 
+    Return     : A tuple of three matrices (ndarray) denoting the training set, cross validation set, and the test set 
                     respectively. 
     Notes      :
                  data_set_input has dimensions (number of examples x number of features).
@@ -335,7 +333,7 @@ class LearningAlgorithm:
                     include the missing examples to the training set. 
     """
     @staticmethod
-    def split_original_training_set(data_set_input, data_set_output):
+    def split_original_training_set(data_set_input, data_set_output) -> tuple:
         # Combine input and output data
         m = data_set_output.shape
         data_set_output = np.reshape(data_set_output, (m[0], 1))
@@ -396,7 +394,7 @@ class LearningAlgorithm:
     Return     :
     Notes      :
     """
-    def lambda_selection(self, train_set_input, train_set_output, cv_set_input, cv_set_output):
+    def lambda_selection(self, train_set_input, train_set_output, cv_set_input, cv_set_output) -> tuple:
         # Lambda Value Upper bound, step size, vector size
         lambda_upper = 0.5 #1.0 #10.0
         lambda_step = 0.05
@@ -468,7 +466,6 @@ class LearningAlgorithm:
                 optimal_lambda = lambda_vector[j]
                 temp_cv_error = overall_accuracy[j]
 
-        test_break = 0
         return optimal_lambda
 
     """
@@ -480,7 +477,8 @@ class LearningAlgorithm:
     Return     : A tuple containing four vectors (ndarray), each one denoting one of the metric values in the order 
                     precision, recall, fscore, and accuracy.
     Notes      :
-                 Each of the four vectors (ndarray) have the dimensions: (number of classes x 1)
+                 predicted_output and actual_output have dimensions: (number of examples x 1).
+                 Each of the four vectors (ndarray) have the dimensions: (number of classes x 1).
     """
     def metrics(self, predicted_output, actual_output):
         # Precision, Recall, Accuracy, F_Score array initialization
@@ -547,15 +545,15 @@ class LearningAlgorithm:
 
     """
     Name       : store_parameters
-    Purpose    : To write the learned parameter values to a csv file
-    Parameters : theta_values which is a matrix of learned parameter values
-    Return     : None
+    Purpose    : To write the learned parameter values to a csv file.
+    Parameters : theta_values which is a matrix of learned parameter values.
+    Return     : None.
     Notes      : 
-        This function truncates any data already in the csv file
-        theta_values has dimensions: (number of classes x number of features)    
+                 This function truncates any data already in the csv file.
+                 theta_values has dimensions: (number of classes x number of features).   
     """
     @staticmethod
-    def store_parameters(theta_values):
+    def store_parameters(theta_values) -> None:
         file_name = 'parameter_values.csv'
 
         # Open the current file and truncate the data
@@ -573,13 +571,14 @@ class LearningAlgorithm:
 
     """
     Name       : feature_scaling
-    Purpose    : Performs min-max feature scaling on the input data
-    Parameters : 
-    Return     :
-    Notes      :
+    Purpose    : Performs min-max feature scaling on the input data.
+    Parameters : A matrix (ndarray), input_data, denoting the input data.
+    Return     : A matrix (ndarray) denoting the min-max scaled input data.
+    Notes      : 
+                 The dimensions for input_data and norm_input_data are: (number of examples x number of features).
     """
-
-    def feature_scaling(self, input_data):
+    @staticmethod
+    def feature_scaling(input_data) -> np.ndarray:
         # Find the max/min values for each feature
         max_vals = np.amax(input_data, axis=0)
         min_vals = np.amin(input_data, axis=0)
@@ -587,13 +586,26 @@ class LearningAlgorithm:
         # Obtain matrix shape
         m, n = np.shape(input_data)
 
+        # Initialize the return matrix
+        norm_input_data = np.zeros((m, n))
+
         # Perform normalization
         for row in range(m):
             for col in range(n):
                 new_val = (input_data[row, col] - min_vals[col]) / (min_vals[col] + max_vals[col])
-                input_data[row, col] = new_val
+                norm_input_data[row, col] = new_val
 
-        return input_data
+        return norm_input_data
+
+
+"""
+Name       :
+Purpose    : 
+Parameters :
+Return     :
+Notes      :
+"""
+
 
 def main():
     test = LearningAlgorithm()
