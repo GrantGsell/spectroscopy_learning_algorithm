@@ -1,7 +1,9 @@
-import numpy as np
 import csv
+import math
+import numpy as np
 from scipy import optimize as optim
-import matplotlib.pyplot as plt
+np.seterr(divide='raise')
+
 
 class LearningAlgorithm:
     def __init__(self):
@@ -31,10 +33,10 @@ class LearningAlgorithm:
 
         # Find the optimal regularization constant
         regularization_constant = self.lambda_selection(training_set_input, training_set_output, cv_set_input,
-                                                  cv_set_output)
+                                                        cv_set_output)
 
         # Find the optimum values for theta
-        parameter_values = self.one_vs_all(input_data, output_data, self.num_classes, 0.1)
+        parameter_values = self.one_vs_all(input_data, output_data, self.num_classes, regularization_constant)
 
         # Test for One versus all prediction
         result = self.predict_one_vs_all(parameter_values, input_data)
@@ -57,10 +59,7 @@ class LearningAlgorithm:
     def load_matrix_data(self):
         data = np.loadtxt(open('input_and_output_data.csv'), delimiter=",", dtype='float32')
         X, y = self.split_data_set_into_i_o(data)
-
-        #X = data[:, 0: -1]
-        #y = data[:, -1]
-
+        X = self.feature_scaling(X)
         self.num_classes = len(np.unique(y))
         return X, y
 
@@ -77,7 +76,9 @@ class LearningAlgorithm:
                 X has dimensions    : (number of examples x number of features)
                 g has dimensions    : (number of examples x 1)
     '''
-    def sigmoid_hypothesis(self, theta, X):
+    @staticmethod
+    def sigmoid_hypothesis(theta, X) -> np.ndarray:
+
         # Perform matrix multiplication to obtain the sigmoid input vector
         z = np.matmul(X, theta)
 
@@ -100,23 +101,27 @@ class LearningAlgorithm:
                  y has dimensions     : (number of examples x 1) 
                  hyp has dimensions   : (number of training examples x 1)
     '''
-    def lr_cost_function_regularized(self, theta, X, y, lambdaConst):
+    def lr_cost_function_regularized(self, theta, X, y, lambda_const) -> float:
         # Temp Theta
         temp_theta = theta.copy()
 
         # Number of training examples
-        m = len(y)
+        m = float(len(y))
 
         # Hypothesis calculation
         hyp = self.sigmoid_hypothesis(temp_theta, X)
 
         # Regularized Cost Function Calculation
+        epsilon = 1E-20
         term_0 = np.matmul(np.transpose(-1.0 * y), np.log(hyp))
-        term_1 = np.matmul(np.transpose(1.0 - y), np.log(1.0 - hyp))
-        temp_theta[0] = 0
-        term_2 = (lambdaConst / (2.0 * m)) * np.matmul(np.transpose(temp_theta),
-                                                       temp_theta)
-        J = (term_0 - term_1) * (1.0 / m) + term_2
+        term_1 = np.matmul(np.transpose(1.0 - y), np.log(1.0 - hyp + epsilon))
+        temp_theta[0] = 0.0
+        term_2 = (lambda_const / (2.0 * m)) * np.matmul(np.transpose(temp_theta),
+                                                        temp_theta)
+        try:
+            J = (term_0 - term_1) * (1.0 / m) + term_2
+        except ZeroDivisionError:
+            J = 0
 
         return J
 
@@ -136,21 +141,24 @@ class LearningAlgorithm:
                 grad has dimensions  : (number of features x 1) 
     
     '''
-    def lr_gradient_regularized(self, theta, X, y, reg_const):
+    def lr_gradient_regularized(self, theta, X, y, reg_const) -> np.ndarray:
         # Temp theta
         temp_theta = theta.copy()
 
         # Number of training examples
-        m = len(y)
+        m = float(len(y))
 
         # Hypothesis calculation
         hyp = self.sigmoid_hypothesis(temp_theta, X)
 
         # Gradient Descent
-        temp_theta[0] = 0
+        temp_theta[0] = 0.0
         X_transpose = np.transpose(X)
         inner = np.subtract(hyp, y)
-        grad = (1.0 / m) * np.matmul(X_transpose, inner)
+        try:
+            grad = (1.0 / m) * np.matmul(X_transpose, inner)
+        except ZeroDivisionError:
+            grad = 0
         reg_term = (reg_const / (1.0 * m)) * temp_theta
         grad = grad + reg_term
 
@@ -172,7 +180,7 @@ class LearningAlgorithm:
                  all_theta had dimensions : (number of classes x  number of 
                                                 features)
     '''
-    def one_vs_all(self, X, y, num_labels, reg_const):
+    def one_vs_all(self, X, y, num_labels, reg_const) -> np.ndarray:
         m = np.size(X, 0)
         n = np.size(X, 1)
 
@@ -197,7 +205,7 @@ class LearningAlgorithm:
                 jac=self.lr_gradient_regularized,
                 options={'gtol': 1e-9, 'maxiter': 100}
             )
-            print(res.message)
+            #print(res.message)
             curr_theta = res.x
             all_theta[num][:] = curr_theta
 
@@ -215,7 +223,7 @@ class LearningAlgorithm:
     Notes      : This function allows for one-versus-all multi-class classification
                     problems.
     '''
-    def logical_array(self, output_arr, curr_num):
+    def logical_array(self, output_arr, curr_num) -> np.ndarray:
         logical_array = output_arr.copy()
         for row in range(np.size(logical_array)):
             if (logical_array[row] == curr_num):
@@ -233,12 +241,9 @@ class LearningAlgorithm:
                     is most likely to belong to.
     Notes      :
     '''
-    def predict_one_vs_all(self, all_theta, X):
+    def predict_one_vs_all(self, all_theta, X) -> np.ndarray:
         # Number of training examples
         m = np.size(X, 0)
-
-        # Number of classes
-        num_labels = np.size(all_theta, 0)
 
         # Initialize return array
         predict = np.zeros((m, 1))
@@ -263,39 +268,18 @@ class LearningAlgorithm:
         return predict
 
     """
-    Name       :
-    Purpose    : 
-    Parameters :
-    Return     :
-    Notes      :
-    """
-    def train_logistic_regression(self, theta, X, y):
-        result = self.predict_one_vs_all(theta, X)
-
-        for row in range(np.size(result)):
-            a = result[row]
-            b = y[row]
-            if result[row] == y[row]:
-                result[row] = 1.0
-            else:
-                result[row] = 0.0
-        accuracy = (np.sum(result) / np.size(result)) * 100.0
-        return accuracy
-
-
-    """
     Name       : randomize_matrix_row_data
     Purpose    : To synchronously randomize the input and output data
     Parameters : input_data_matrix which is the input data matrix, output_data_vector which is the output data vector.
-    Return     : random_input_data which denotes the randomized input data matrix, random_output_data which denotes the 
-                 randomized output data matrix. 
+    Return     : A tuple with two elements, random_input_data which denotes the randomized input data matrix, and 
+                    random_output_data which denotes the randomized output data matrix. 
     Notes      :
-                random_input_data has dimensions:  (number of examples x number of features)
-                random_output_data has dimensions: (number of examples x 1)
-                The ith row of random_input_data corresponds to the ith row of random_output_data
-                data_matrix is a concatenation of the input and output data column-wise
-                data_matrix has dimensions (number of examples x number of features + 1)
-                The plus 1 denotes the output column vector being added to the input data matrix
+                random_input_data has dimensions:  (number of examples x number of features).
+                random_output_data has dimensions: (number of examples x 1).
+                The ith row of random_input_data corresponds to the ith row of random_output_data.
+                data_matrix is a concatenation of the input and output data column-wise.
+                data_matrix has dimensions (number of examples x number of features + 1).
+                    The plus 1 denotes the output column vector being added to the input data matrix.
     """
     def randomize_matrix_row_data(self, input_data_matrix, output_data_vector):
         # Ensure the output vector is defined by a 2d tuple
@@ -315,9 +299,7 @@ class LearningAlgorithm:
         (m, n) = copy_data_matrix.shape
 
         # Split data accordingly
-        #random_input_data, random_output_data = self.split_data_set_into_i_o(copy_data_matrix)
-        random_input_data = copy_data_matrix[:, 0:n-1]
-        random_output_data = copy_data_matrix[:, n-1]
+        random_input_data, random_output_data = self.split_data_set_into_i_o(copy_data_matrix)
 
         return random_input_data, random_output_data
 
@@ -333,18 +315,24 @@ class LearningAlgorithm:
         data_set_input = data_set[:, 0:-1]
         data_set_output = data_set[:, -1]
 
-        # Ensure data_set_output is defined by a 2d tuple
-        #m = data_set_output.shape
-        #data_set_output = np.reshape(data_set_output, (m[0], 1))
-
         return data_set_input, data_set_output
 
     """
-    Name       :
-    Purpose    : 
-    Parameters :
-    Return     :
+    Name       : split_original_training_set
+    Purpose    : To divide the original training set into a new training set, cross validation set, and test set.
+    Parameters : Two matrices the first containing the input data, the second containing the output data.
+    Return     : A tuple of three matrices denoting the training set, cross validation set, and the test set 
+                    respectively. 
     Notes      :
+                 data_set_input has dimensions (number of examples x number of features).
+                 data_set_output has dimensions (number of examples x 1).
+                 
+                 The training set contains 60% of the examples from the original training set.
+                 The cv set and test set each contain 20% of the examples from the original training set.
+                 
+                 This function also ensures that all of the original training set examples are used in one of the three
+                    new sets. If the number of examples cannot be split up evenly, the data set index are shifted to 
+                    include the missing examples to the training set. 
     """
     @staticmethod
     def split_original_training_set(data_set_input, data_set_output):
@@ -357,11 +345,11 @@ class LearningAlgorithm:
         m = len(original_training_set)
 
         # Print the number of training examples
-        print("There are %d training examples in the original training set.\n" % m)
+        print("\nThere are %d training examples in the original training set.\n" % m)
 
         # Set indices for each of the three data sets
         training_set_lower_index = 0
-        training_set_upper_index = int(m * 0.6)
+        training_set_upper_index = int(math.floor(m * 0.6))
         cv_set_lower_index = training_set_upper_index
         cv_set_upper_index = int(m * 0.2) + cv_set_lower_index
         test_set_lower_index = cv_set_upper_index
@@ -375,7 +363,6 @@ class LearningAlgorithm:
             cv_set_upper_index += delta
             test_set_lower_index += delta
             test_set_upper_index += delta
-
 
         # Create the three data sets
         training_set = original_training_set[training_set_lower_index:training_set_upper_index][:]
@@ -398,6 +385,7 @@ class LearningAlgorithm:
         print(header_fs.format(head0="Training Set", head1="Cross Validation Set", head2="Test Set", head3="Total"))
         print(underline_fs.format(''))
         print(set_fs.format(col0=m_training_set, col1=m_cv_set, col2=m_test_set, col3=total))
+        print("\n")
 
         return training_set, cv_set, test_set
 
@@ -427,6 +415,7 @@ class LearningAlgorithm:
         # Return array initialization
         train_f_score = np.zeros((ll, self.num_classes))
         cross_validation_f_score = np.zeros((ll, self.num_classes))
+        overall_accuracy = np.zeros(ll)
 
         # Generate Training error values based on lambda values
         for i in range(ll):
@@ -444,8 +433,11 @@ class LearningAlgorithm:
             train_f_score[i, :] = np.transpose(test)
 
             # Run metrics for cv set
-            _, _, test, _ = self.metrics(prediction_cv, cv_set_output)
+            _, _, test, accuracy = self.metrics(prediction_cv, cv_set_output)
             cross_validation_f_score[i, :] = np.transpose(test)
+
+            # Finds the best lambda for optimal class0/1 accuracy (since class 2 is so different it is almost always 1)
+            overall_accuracy[i] = (sum(accuracy[0:self.num_classes - 1]) / (self.num_classes - 1))
 
         # Print the class accuracy with associated lambda value
         header_f_str = "{head0:^20.20s} | {head1:^20.20s} | {head2:^20.20s} | {head3:^20.20s} | " \
@@ -459,7 +451,7 @@ class LearningAlgorithm:
                                   head6="Class 2 CV F Score"))
 
         # Header/Metrics Data separator
-        underline_fs = "{:-^125}"
+        underline_fs = "{:-^140}"
         print(underline_fs.format(''))
 
         # Print Lambda/Metrics
@@ -468,32 +460,27 @@ class LearningAlgorithm:
                                     col3=train_f_score[k, 2], col4=cross_validation_f_score[k, 0],
                                     col5=cross_validation_f_score[k, 1], col6=cross_validation_f_score[k, 2]))
 
-        """    
-        # Plot the training error and validation error vs value of lambda
-        plt.plot(train_error, lambda_vector, 'r')
-        plt.plot(cross_validation_error, lambda_vector, 'b')
-        plt.title("Training Error, Cross Validation Error vs. Lambda Values")
-        plt.table([["Training Error"], ["Cross Validation Error"]], [['r'], ['b']])
-        plt.grid(True, 'both', 'both')
-        plt.xlabel("Lambda Value")
-        plt.ylabel("Cost")
-
         # Find the lambda value associated with the lowest cv error
         optimal_lambda = lambda_vector[0]
-        temp_cv_error = cross_validation_error[0]
+        temp_cv_error = overall_accuracy[0]
         for j in range(1, ll):
-            if cross_validation_error[j] < temp_cv_error:
+            if overall_accuracy[j] < temp_cv_error:
                 optimal_lambda = lambda_vector[j]
-                temp_cv_error = cross_validation_error[j]
-        """
-        return 0#optimal_lambda
+                temp_cv_error = overall_accuracy[j]
+
+        test_break = 0
+        return optimal_lambda
 
     """
-    Name       :
-    Purpose    : 
-    Parameters :
-    Return     :
+    Name       : metrics
+    Purpose    : To calculate the precision, recall, fscore and accuracy of each class.
+    Parameters : predicted output which is a vector (ndarray) denoting the learning algorithms prediction on each 
+                    example m.
+                 actual_output which is a vector (ndarray) denoting the correct output for each example m.
+    Return     : A tuple containing four vectors (ndarray), each one denoting one of the metric values in the order 
+                    precision, recall, fscore, and accuracy.
     Notes      :
+                 Each of the four vectors (ndarray) have the dimensions: (number of classes x 1)
     """
     def metrics(self, predicted_output, actual_output):
         # Precision, Recall, Accuracy, F_Score array initialization
@@ -584,6 +571,29 @@ class LearningAlgorithm:
 
         return
 
+    """
+    Name       : feature_scaling
+    Purpose    : Performs min-max feature scaling on the input data
+    Parameters : 
+    Return     :
+    Notes      :
+    """
+
+    def feature_scaling(self, input_data):
+        # Find the max/min values for each feature
+        max_vals = np.amax(input_data, axis=0)
+        min_vals = np.amin(input_data, axis=0)
+
+        # Obtain matrix shape
+        m, n = np.shape(input_data)
+
+        # Perform normalization
+        for row in range(m):
+            for col in range(n):
+                new_val = (input_data[row, col] - min_vals[col]) / (min_vals[col] + max_vals[col])
+                input_data[row, col] = new_val
+
+        return input_data
 
 def main():
     test = LearningAlgorithm()
