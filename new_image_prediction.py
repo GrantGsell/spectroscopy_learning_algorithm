@@ -72,8 +72,10 @@ class ImagePrediction:
 
         # Create a figure with (width / m) x (height / n) subplots
         if not auto_flag:
-            fig, ax = plt.subplots((height // n), (width // m), figsize=(16, 12), gridspec_kw={'wspace': 0.20, 'hspace': 0.20},
-                                   subplot_kw={'xticklabels': [], 'yticklabels': [], 'xticks': [], 'yticks': [], 'picker': True})
+            fig, ax = plt.subplots((height // n), (width // m), figsize=(16, 12),
+                                    gridspec_kw={'wspace': 0.20, 'hspace': 0.20},
+                                    subplot_kw={'xticklabels': [], 'yticklabels': [], 'xticks': [], 'yticks': [],
+                                                'picker': True})
 
         # Partition original image into boxes and analyze
         for row in range(m, height + 1, m):
@@ -337,4 +339,5 @@ def main():
 
     return
 
-if __name__ == '__main__': main()
+if __name__ == '__main__':
+    main()

@@ -2,6 +2,7 @@ import csv
 import math
 import numpy as np
 from scipy import optimize as optim
+from timeit import default_timer as timer
 np.seterr(divide='raise')
 
 
@@ -32,18 +33,22 @@ class LearningAlgorithm:
         test_set_input, test_set_output = self.split_data_set_into_i_o(test_set)
 
         # Find the optimal regularization constant
+        start_time = timer()
         regularization_constant = self.lambda_selection(training_set_input, training_set_output, cv_set_input,
                                                         cv_set_output)
+        end_time = timer()
+        elapsed_time = end_time - start_time
+        print("Elapsed time: %.7f\n" % elapsed_time)
 
         # Find the optimum values for theta
         parameter_values = self.one_vs_all(input_data, output_data, self.num_classes, regularization_constant)
 
         # Test for One versus all prediction
-        result = self.predict_one_vs_all(parameter_values, input_data)
+        result = self.predict_one_vs_all(parameter_values, test_set_input)
 
         # Metrics for the given set of parameters
-        _, _, f_score, accuracy = self.metrics(result, output_data)
-        macro_f_score, weighted_f_score = self.multi_f_scores(f_score, output_data)
+        _, _, f_score, accuracy = self.metrics(result, test_set_output)
+        macro_f_score, weighted_f_score = self.multi_f_scores(f_score, test_set_output)
         print("Macro F Score   : %.5f\n"
               "Weighted FScore : %.5f\n"
               "Average Accuracy: %.5f\n"
@@ -206,7 +211,7 @@ class LearningAlgorithm:
                 args=(x_with_bias, new_y, reg_const),
                 method='CG',
                 jac=self.lr_gradient_regularized,
-                options={'gtol': 1e-9, 'maxiter': 100}
+                options={'gtol': 1e-9, 'maxiter': 50}
             )
             #print(res.message)
             curr_theta = res.x
@@ -624,15 +629,15 @@ class LearningAlgorithm:
         m, n = np.shape(input_data)
 
         # Initialize the return matrix
-        norm_input_data = np.zeros((m, n))
+        #norm_input_data = np.zeros((m, n))
 
         # Perform normalization
         for row in range(m):
             for col in range(n):
                 new_val = (input_data[row, col] - min_vals[col]) / (min_vals[col] + max_vals[col])
-                norm_input_data[row, col] = new_val
+                input_data[row, col] = new_val
 
-        return norm_input_data
+        return input_data
 
 
 """
