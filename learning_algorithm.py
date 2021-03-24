@@ -42,7 +42,12 @@ class LearningAlgorithm:
         result = self.predict_one_vs_all(parameter_values, input_data)
 
         # Metrics for the given set of parameters
-        self.metrics(result, output_data)
+        _, _, f_score, accuracy = self.metrics(result, output_data)
+        macro_f_score, weighted_f_score = self.multi_f_scores(f_score, output_data)
+        print("Macro F Score   : %.5f\n"
+              "Weighted FScore : %.5f\n"
+              "Average Accuracy: %.5f\n"
+              % (macro_f_score, weighted_f_score, (sum(accuracy)/self.num_classes)))
 
         # Store the optimized parameters in csv
         self.store_parameters(parameter_values)
@@ -187,7 +192,7 @@ class LearningAlgorithm:
 
         # Add the bias unit to each input example as the first column
         ones_column_vector = np.zeros((m, 1)) + 1.0
-        x_with_bias = np.concatenate((ones_column_vector, X), 1)
+        x_with_bias = np.concatenate((ones_column_vector, X), 1, dtype="float32")
 
         # Initial Theta values
         initial_theta = np.zeros((n + 1, 1))
@@ -249,7 +254,7 @@ class LearningAlgorithm:
 
         # Add ones to the X data matrix
         ones_column_vector = np.zeros((m, 1)) + 1.0
-        x_with_bias = np.concatenate((ones_column_vector, X), 1)
+        x_with_bias = np.concatenate((ones_column_vector, X), 1, dtype="float32")
 
         # Hypothesis calculation
         hyp = self.sigmoid_hypothesis(np.transpose(all_theta), x_with_bias)
@@ -388,13 +393,13 @@ class LearningAlgorithm:
         return training_set, cv_set, test_set
 
     """
-    Name       :
-    Purpose    : 
+    Name       : lambda_selection
+    Purpose    : To find the optimal value for the regularization constant.
     Parameters :
-    Return     :
-    Notes      :
+    Return     : 
+    Notes      : 
     """
-    def lambda_selection(self, train_set_input, train_set_output, cv_set_input, cv_set_output) -> tuple:
+    def lambda_selection(self, train_set_input, train_set_output, cv_set_input, cv_set_output) -> float:
         # Lambda Value Upper bound, step size, vector size
         lambda_upper = 0.5 #1.0 #10.0
         lambda_step = 0.05
@@ -413,7 +418,7 @@ class LearningAlgorithm:
         # Return array initialization
         train_f_score = np.zeros((ll, self.num_classes))
         cross_validation_f_score = np.zeros((ll, self.num_classes))
-        overall_accuracy = np.zeros(ll)
+        multi_cross_validation_f_score = np.zeros((ll, 2))
 
         # Generate Training error values based on lambda values
         for i in range(ll):
@@ -431,22 +436,22 @@ class LearningAlgorithm:
             train_f_score[i, :] = np.transpose(test)
 
             # Run metrics for cv set
-            _, _, test, accuracy = self.metrics(prediction_cv, cv_set_output)
+            _, _, test, _ = self.metrics(prediction_cv, cv_set_output)
             cross_validation_f_score[i, :] = np.transpose(test)
 
-            # Finds the best lambda for optimal class0/1 accuracy (since class 2 is so different it is almost always 1)
-            overall_accuracy[i] = (sum(accuracy[0:self.num_classes - 1]) / (self.num_classes - 1))
+            # Calculate the Macro F1 score and the Weighted F1 score
+            multi_cross_validation_f_score[i, :] = self.multi_f_scores(cross_validation_f_score[i, :], cv_set_output)
 
         # Print the class accuracy with associated lambda value
         header_f_str = "{head0:^20.20s} | {head1:^20.20s} | {head2:^20.20s} | {head3:^20.20s} | " \
-                       "{head4:^20.20s} | {head5:^20.20s} | {head6:^20.20s}"
+                       "{head4:^20.20s} | {head5:^20.20s} | {head6:^20.20s} | {head7:^20.20s} | {head8:^20.20s}"
         data_f_str = "{col0:^20.5f} | {col1:^20.5f} | {col2:^20.5f} | {col3:^20.5f} | " \
-                     "{col4:^20.5f} | {col5:^20.5f} | {col6:^20.5f}"
+                     "{col4:^20.5f} | {col5:^20.5f} | {col6:^20.5f} | {col7:^20.5f} | {col8:^20.5f}"
 
         # Print Header data
-        print(header_f_str.format(head0="Lambda Value", head1="Class 0 TS F Score", head2="Class 1 TS F Score",
-                                  head3="Class 2 TS F Score", head4="Class 0 CV F Score", head5="Class 1 CV F Score",
-                                  head6="Class 2 CV F Score"))
+        print(header_f_str.format(head0="Lambda Value", head1="Class 0 TS F1 Score", head2="Class 1 TS F1 Score",
+                                  head3="Class 2 TS F1 Score", head4="Class 0 CV F1 Score", head5="Class 1 CV F1 Score",
+                                  head6="Class 2 CV F1 Score", head7="Macro F1 Score", head8="Weighted F1 Score"))
 
         # Header/Metrics Data separator
         underline_fs = "{:-^140}"
@@ -456,15 +461,28 @@ class LearningAlgorithm:
         for k in range(ll):
             print(data_f_str.format(col0=(lambda_vector[k])[0], col1=train_f_score[k, 0], col2=train_f_score[k, 1],
                                     col3=train_f_score[k, 2], col4=cross_validation_f_score[k, 0],
-                                    col5=cross_validation_f_score[k, 1], col6=cross_validation_f_score[k, 2]))
+                                    col5=cross_validation_f_score[k, 1], col6=cross_validation_f_score[k, 2],
+                                    col7=multi_cross_validation_f_score[k, 0],
+                                    col8=multi_cross_validation_f_score[k, 1]))
 
-        # Find the lambda value associated with the lowest cv error
+        # Find the lambda value associated with the highest macro F1 score
         optimal_lambda = lambda_vector[0]
-        temp_cv_error = overall_accuracy[0]
+        cv_macro_f1_score = multi_cross_validation_f_score[0, 0]
         for j in range(1, ll):
-            if overall_accuracy[j] < temp_cv_error:
+            if multi_cross_validation_f_score[j, 0] > cv_macro_f1_score:
                 optimal_lambda = lambda_vector[j]
-                temp_cv_error = overall_accuracy[j]
+                cv_macro_f1_score = multi_cross_validation_f_score[j, 0]
+
+        # Find the lambda value associated with the highest weighted F1 score
+        optimal_lambda_weight = lambda_vector[0]
+        cv_weighted_f1_score = multi_cross_validation_f_score[0, 1]
+        for idx in range(1, ll):
+            if multi_cross_validation_f_score[idx, 1] > cv_weighted_f1_score:
+                optimal_lambda_weight = lambda_vector[idx]
+                cv_weighted_f1_score = multi_cross_validation_f_score[idx, 1]
+
+        print("Optimal Lambda, Macro   : %0.3f" % optimal_lambda)
+        print("Optimal Lambda, Weighted: %0.3f" % optimal_lambda_weight)
 
         return optimal_lambda
 
@@ -508,12 +526,10 @@ class LearningAlgorithm:
             try:
                 precision_arr[i] = tp / (tp + fp)
             except ZeroDivisionError:
-                print("Divide by zero mess up!")
                 precision_arr[i] = 0
             try:
                 recall_arr[i] = tp / (tp + fn)
             except ZeroDivisionError:
-                print("Divide by zero mess up!")
                 recall_arr[i] = 0
 
             # Calculate Accuracy for the given class
@@ -542,6 +558,27 @@ class LearningAlgorithm:
         """
 
         return precision_arr, recall_arr, f_score_arr, accuracy_arr
+
+    """
+    Name       :
+    Purpose    : 
+    Parameters :
+    Return     :
+    Notes      :
+    """
+    def multi_f_scores(self, f_score_arr, output_data):
+        # Count the number of examples in each class
+        _, counts = np.unique(output_data, return_counts=True)
+
+        # Calculate Macro F1 Score
+        macro_f1_score = sum(f_score_arr) / self.num_classes
+
+        # Calculate Weighted F1 Score
+        total_num_examples = np.shape(output_data)[0]
+        weighted_f1_score = np.matmul(np.transpose(f_score_arr), counts) / total_num_examples
+
+        return macro_f1_score, weighted_f1_score
+
 
     """
     Name       : store_parameters
@@ -615,15 +652,18 @@ def main():
     test.num_classes = 3
 
     predicted_arr =[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2]
+
     actual_arr = [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 0, 1, 1, 0, 1, 1, 2, 2, 2, 2, 2, 2]
     predicted_arr = np.array(predicted_arr)
     actual_arr = np.array(actual_arr)
     predicted_arr = np.reshape(predicted_arr, (25, 1))
     actual_arr = np.reshape(actual_arr, (25, 1))
 
+    _, _, f_scores, _ = test.metrics(predicted_arr, actual_arr)
 
-    test.metrics(predicted_arr, actual_arr)
+    test.multi_f_scores(f_scores, actual_arr)
     """
+
     return
 
 if __name__ == "__main__":
