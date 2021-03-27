@@ -9,7 +9,7 @@ plt.ioff()
 
 class ImagePrediction:
 
-    def __init__(self, auto_flag):
+    def __init__(self, auto_flag: bool):
         self.num_classes = None
         self.parameter_file_name = 'parameter_values.csv'
         self.num_row_pixels = 40
@@ -94,6 +94,9 @@ class ImagePrediction:
                 data_pixel_box_array = np.array([elem for tuples in data_pixel_box for elem in tuples])
                 data_pixel_box_array = np.reshape(data_pixel_box_array, (1, np.shape(data_pixel_box_array)[0]))
 
+                # Normalize RGB Data
+                #data_pixel_box_array = self.feature_scaling(data_pixel_box_array)
+
                 # Make the prediction for this particular pixel subbox
                 curr_prediction = self.predict_one_vs_all(parameter_values, data_pixel_box_array)
                 curr_prediction = int(curr_prediction[0])
@@ -140,9 +143,12 @@ class ImagePrediction:
         # Prompt user for value changes
         while True:
             change_values = input('Would you like to change any of the predictions? (Y/n) ')
-            if change_values == "Y": break
-            elif change_values == "n": return prediction_dict
-            else: print("Error: Incorrect Input")
+            if change_values == "Y":
+                break
+            elif change_values == "n":
+                return prediction_dict
+            else:
+                print("Error: Incorrect Input")
 
         # Prompt users for which sub-box to change
         change_flag = True
@@ -155,7 +161,8 @@ class ImagePrediction:
             # Obtain row number
             while True:
                 curr_row = int(input("Enter the row number of the box you want to change: "))
-                if curr_row >= 0 and curr_row <= max_row: break
+                if 0 <= curr_row <= max_row:
+                    break
                 else: print("Error: Incorrect Input")
 
             # Obtain column number
@@ -247,9 +254,6 @@ class ImagePrediction:
         # Number of training examples
         m = np.size(X, 0)
 
-        # Number of classes
-        num_labels = np.size(all_theta, 0)
-
         # Initialize return array
         predict = np.zeros((m, 1))
 
@@ -333,8 +337,10 @@ class ImagePrediction:
         self.num_classes = (np.shape(parameters))[0]
         return parameters
 
+
 def main():
-    new_prediction = ImagePrediction(3)
+    new_prediction = ImagePrediction(False)
+    new_prediction.num_classes = 3
     new_prediction.top_image_prediction('new_image_test.jpg')
 
     return
