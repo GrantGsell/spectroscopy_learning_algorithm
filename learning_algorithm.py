@@ -211,7 +211,7 @@ class LearningAlgorithm:
                 args=(x_with_bias, new_y, reg_const),
                 method='CG',
                 jac=self.lr_gradient_regularized,
-                options={'gtol': 1e-9, 'maxiter': 50}
+                options={'gtol': 1e-9, 'maxiter': 75}
             )
             #print(res.message)
             curr_theta = res.x
@@ -622,8 +622,8 @@ class LearningAlgorithm:
     @staticmethod
     def feature_scaling(input_data) -> np.ndarray:
         # Find the max/min values for each feature
-        max_vals = np.amax(input_data, axis=0)
-        min_vals = np.amin(input_data, axis=0)
+        max_vals = 256 #np.amax(input_data, axis=0)
+        min_vals = 0 #np.amin(input_data, axis=0)
 
         # Obtain matrix shape
         m, n = np.shape(input_data)
@@ -634,7 +634,8 @@ class LearningAlgorithm:
         # Perform normalization
         for row in range(m):
             for col in range(n):
-                new_val = (input_data[row, col] - min_vals[col]) / (min_vals[col] + max_vals[col])
+                #new_val = (input_data[row, col] - min_vals[col]) / (min_vals[col] + max_vals[col])
+                new_val = (input_data[row, col] - min_vals) / (min_vals + max_vals)
                 input_data[row, col] = new_val
 
         return input_data
