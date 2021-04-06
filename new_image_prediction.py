@@ -22,10 +22,12 @@ class ImagePrediction:
         self.auto_flag = auto_flag
 
     '''
-    Name       :
-    Purpose    : 
-    Parameters :
-    Return     :
+    Name       : top_image_prediction
+    Purpose    : To take a new image, partition it into sub-boxes, make a prediction on each sub-box, store the 
+                    predictions in a dictionary, translate the dictionary into a binary matrix and write the binary
+                    matrix to a csv file.
+    Parameters : None
+    Return     : None
     Notes      :
                  This method assumes the new image is in the cwd
     '''
