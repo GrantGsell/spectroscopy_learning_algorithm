@@ -2,6 +2,8 @@ import numpy as np
 import csv
 import matplotlib.pyplot as plt
 from PIL import Image as img
+import os
+import pathlib
 import matplotlib as mpl
 #mpl.use('TkAgg')
 plt.ioff()
@@ -26,6 +28,9 @@ class ImagePrediction:
     Notes      :
     '''
     def top_image_prediction(self, new_image_name):
+        # Take a new picture
+        self.camera_capture(True)
+
         # Read in the parameter data
         parameters = self.read_parameters()
 
@@ -336,6 +341,31 @@ class ImagePrediction:
         parameters = data[:, :]
         self.num_classes = (np.shape(parameters))[0]
         return parameters
+
+    '''
+    Name       :
+    Purpose    : 
+    Parameters :
+    Return     :
+    Notes      :
+    '''
+    @staticmethod
+    def camera_capture(preview: bool) -> None:
+        # Obtain the cwd and set image path
+        cwd = str(pathlib.Path().absolute())
+        output_file_name = cwd + "\\test_pic_v0.jpg"
+
+        # Set the command string
+        command_string = None
+        if preview:
+            command_string = "raspistill -f -w 1600 -h 1200 -t 500 -o "
+        else:
+            command_string = "raspistill -n -w 1600 -h 1200 -t 500 -o "
+
+        # Take the picture and store it
+        os.system(command_string + output_file_name)
+
+        return
 
 
 def main():
