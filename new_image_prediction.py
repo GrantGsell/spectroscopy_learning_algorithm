@@ -14,6 +14,7 @@ class ImagePrediction:
     def __init__(self, auto_flag: bool):
         self.num_classes = None
         self.parameter_file_name = 'parameter_values.csv'
+        self.new_file_name = "test_pic_v0.jpg"
         self.num_row_pixels = 40
         self.num_col_pixels = 40
         self.img_height = None
@@ -26,6 +27,7 @@ class ImagePrediction:
     Parameters :
     Return     :
     Notes      :
+                 This method assumes the new image is in the cwd
     '''
     def top_image_prediction(self, new_image_name):
         # Take a new picture
@@ -35,7 +37,7 @@ class ImagePrediction:
         parameters = self.read_parameters()
 
         # Partition and Prediction for new image
-        image_ht = self.new_image_partition_and_prediction(new_image_name, parameters, self.auto_flag)
+        image_ht = self.new_image_partition_and_prediction(self.new_file_name, parameters, self.auto_flag)
 
         # Convert Prediction into a binary matrix
         binary_prediction_matrix = self.create_binary_matrix(image_ht,
@@ -47,11 +49,20 @@ class ImagePrediction:
         return
 
     '''
-    Name       :
-    Purpose    : 
+    Name       : new_image_partition_and_prediction
+    Purpose    : To partition the new image into sub-boxes and make new predictions on each sub-box.
     Parameters :
-    Return     :
+                 file_name, a string denoting the name of the new image to be processed.
+                 parameter_values, a ndarray denoting the learned parameters for the algorithm.
+                 auto_flag, a boolean that denotes whether or not the user wants the ability to change any of the
+                    predictions made on each sub-box. If true the user will be prompted to change any of the predicted
+                    values, if false no changes can be made to the sub-box prediction.
+    Return     : image_ht, a dictionary containing the prediction for each sub-box
     Notes      :
+                 image_ht dictionary: {
+                                        key: tuple = (sub-box row, sub-box column) 
+                                        value: ndarray = [pixel sub-box data :  sub-box prediction]
+                                       }
     '''
     def new_image_partition_and_prediction(self, file_name: str, parameter_values, auto_flag: bool):
         # Create a dictionary to hold the image data
@@ -138,13 +149,20 @@ class ImagePrediction:
 
 
     '''
-    Name       :
-    Purpose    :
-    Parameters :
-    Return     :
+    Name       : manually_change_prediction
+    Purpose    : Allows the user to change any of the sub-box predictions made by the algorithm.
+    Parameters : 
+                 prediction_dict which is a dictionary denoting the prediction made by the algorithm for each sub-box.
+                 ax which is the axis attribute of the image plot.
+                 max_row which is an integer denoting the maximum number of sub-box rows.
+                 max_col which is an integer denoting the maximum number of sub-box columns.
+                 num_classes which is an integer denoting the number of classes.
+    Return     : prediction_dict which is a dictionary denoting the prediction made by the algorithm for each sub-box.
     Notes      :
+                 Changes are based on matrix row/col input values.
+                 Predictions can only be changed to pre-existing classes.
     '''
-    def manually_change_prediction(self, prediction_dict: dict, ax, max_row, max_col, num_classes):
+    def manually_change_prediction(self, prediction_dict: dict, ax, max_row, max_col, num_classes) -> dict:
         # Prompt user for value changes
         while True:
             change_values = input('Would you like to change any of the predictions? (Y/n) ')
@@ -226,25 +244,32 @@ class ImagePrediction:
         return prediction_dict
 
     '''
-    Name       :
-    Purpose    :
-    Parameters :
-    Return     :
+    Name       : create_binary_matrix
+    Purpose    : To translate the prediction dictionary into a 0/1 matrix.
+    Parameters : 
+                 prediction_dict which is a dictionary denoting the prediction for each sub-box.
+                 num_row which is an integer denoting the maximum number of sub-box rows.
+                 num_col which is an integer denoting the maximum number of sub-box columns.
+    Return     : binary_matrix which is a ndarray.
     Notes      :
+                 A 0 denotes a sub-box that should not be imaged.
+                 A 1 denotes a sub-box that should be imaged.
+                 Classes 0/1 are assigned a value of 0.
+                 All other classes are assigned a value of 1.
     '''
     @staticmethod
     def create_binary_matrix(prediction_dict, num_row, num_col):
         # Create zeros matrix
-        bin_mat = np.zeros((num_row, num_col))
+        binary_matrix = np.zeros((num_row, num_col))
 
         # Iterate through the prediction dictionary
         for key in prediction_dict.keys():
             if prediction_dict.get(key)[-1] > 1.0:
                 row = key[0]
                 col = key[1]
-                bin_mat[row, col] = 1
+                binary_matrix[row, col] = 1
 
-        return bin_mat
+        return binary_matrix
 
     '''
     Name       : predict_one_vs_all
@@ -306,18 +331,18 @@ class ImagePrediction:
         return g
 
     """
-    Name       :
-    Purpose    :
-    Parameters :
-    Return     :
-    Notes      :
+    Name       : write_binary_matrix
+    Purpose    : Writes the binary matrix for the image taken to a csv file.
+    Parameters : binary_matrix, a ndarray
+    Return     : None
+    Notes      : None
     """
     @staticmethod
-    def write_binary_matrix(binary_matrix):
-        file_name = 'imaging_matrix.csv'
+    def write_binary_matrix(binary_matrix) -> None:
+        file_name = "imaging_matrix.csv"
 
         # Open the current file and truncate the data
-        imaging_matrix_file = open(file_name, 'w+', newline='')
+        imaging_matrix_file = open(file_name, "w+", newline="")
 
         # Write parameter values
         with imaging_matrix_file:
@@ -330,24 +355,34 @@ class ImagePrediction:
         return
 
     '''
-    Name       :
-    Purpose    : 
-    Parameters :
-    Return     :
-    Notes      :
+    Name       : read_parameters
+    Purpose    : To read in the learned parameters.
+    Parameters : None
+    Return     : parameters, a ndarray containing the learned parameters.
+    Notes      : None
     '''
-    def read_parameters(self):
-        data = np.loadtxt(open(self.parameter_file_name), delimiter=",", dtype='float32')
-        parameters = data[:, :]
-        self.num_classes = (np.shape(parameters))[0]
+    def read_parameters(self) -> np.ndarray:
+        parameters = None
+        try:
+            data = np.loadtxt(open(self.parameter_file_name), delimiter=",", dtype="float32")
+            parameters = data[:, :]
+            self.num_classes = (np.shape(parameters))[0]
+        except FileNotFoundError:
+            print("The algorithm has not been run yet, please do so.")
+
         return parameters
 
     '''
-    Name       :
-    Purpose    : 
-    Parameters :
-    Return     :
+    Name       : camera_capture
+    Purpose    : To capture a new image for processing.
+    Parameters : preview, a boolean denoting if a preview of the image should be displayed.
+    Return     : None
     Notes      :
+                 If preview is True, a preview of the image is shown.
+                 The camera used is a Raspberry Pi Camera V2.
+                 Image Dimensions are set to (1600 x 1200).
+                 The image is stored in the cwd.
+                 The image takes 500ms to be captured (minimum based on camera specs).
     '''
     @staticmethod
     def camera_capture(preview: bool) -> None:
@@ -374,6 +409,7 @@ def main():
     new_prediction.top_image_prediction('new_image_test.jpg')
 
     return
+
 
 if __name__ == '__main__':
     main()
