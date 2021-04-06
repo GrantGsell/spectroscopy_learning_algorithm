@@ -112,9 +112,6 @@ class ImagePrediction:
                 data_pixel_box_array = np.array([elem for tuples in data_pixel_box for elem in tuples])
                 data_pixel_box_array = np.reshape(data_pixel_box_array, (1, np.shape(data_pixel_box_array)[0]))
 
-                # Normalize RGB Data
-                #data_pixel_box_array = self.feature_scaling(data_pixel_box_array)
-
                 # Make the prediction for this particular pixel subbox
                 curr_prediction = self.predict_one_vs_all(parameter_values, data_pixel_box_array)
                 curr_prediction = int(curr_prediction[0])
