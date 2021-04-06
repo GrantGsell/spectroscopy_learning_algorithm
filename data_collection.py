@@ -160,6 +160,7 @@ class DataCollection:
             multiple_files = input("Are you inputting more than one file? (Y/N): \n")
             if multiple_files == "Y" or multiple_files == "y":
                 single_file_flag = False
+                break
             elif multiple_files == "N" or multiple_files == "n":
                 single_file_flag = True
                 break
@@ -251,9 +252,9 @@ class DataCollection:
         return user_input_class_number
 
     """
-    Name       :
-    Purpose    :
-    Parameters :
+    Name       : individually_assign_class_prompt
+    Purpose    : To allow the user to go through each individual pixel sub-box in order to manually classify each one.
+    Parameters : 
     Return     :
     Notes      :
     """
@@ -266,11 +267,13 @@ class DataCollection:
         return class_number
 
     """
-    Name       :
-    Purpose    :
-    Parameters :
-    Return     :
-    Notes      :
+    Name       : write_data_to_data_base
+    Purpose    : To write the pixel data for each sub-box to a row within a csv file.
+    Parameters : 
+                 pixel_data, a list (vector) containing the pixel data for each sub-box.
+                 csv_file_name, a string denoting the name of the csv file to write the data to.  
+    Return     : None.
+    Notes      : None.
     """
     @staticmethod
     def write_data_to_data_base(pixel_data: list, csv_file_name: str) -> None:
@@ -280,13 +283,17 @@ class DataCollection:
         return
 
     """
-    Name       : 
-    Purpose    : 
-    Parameters : 
-    Return     : 
+    Name       : read_class_data
+    Purpose    : To read the class number, class name, and number of examples from the class data csv file.
+    Parameters : None.
+    Return     : None.
     Notes      :
-            key == class number
-            value == (class name:str , number_examples: int)
+                 Upon reading the class data, this method also counts the number of classes and stores that data in the
+                    appropriate object field.
+                 class_ht = {
+                               key: int = class number
+                               value: tuple = (class name:str , number_examples: int)
+                             }
     """
     def read_class_data(self) -> None:
         try:
@@ -318,13 +325,15 @@ class DataCollection:
         return
 
     """
-    Name       : 
-    Purpose    : 
-    Parameters : 
-    Return     : 
+    Name       : write_class_data
+    Purpose    : To write the class number, class name, and number of examples to the class data csv file.
+    Parameters : None.
+    Return     : None.
     Notes      :
-            key == class number
-            value == (class name:str , number_examples: int)
+                 class_ht = {
+                              key: int = class number
+                              value: tuple = (class name:str , number_examples: int)
+                            }
     """
     def write_class_data(self) -> None:
         file_name = self.class_data_name
@@ -344,11 +353,12 @@ class DataCollection:
         return
 
     """
-    Name       :
-    Purpose    :
-    Parameters :
-    Return     :
-    Notes      :
+    Name       : display_class_data
+    Purpose    : To display the class number, class name and number of examples in each class according to the data 
+                    obtained from the class dictionary.
+    Parameters : None.
+    Return     : None.
+    Notes      : None.
     """
     def display_class_data(self) -> None:
         print("The current class data is as follows: ")
@@ -372,11 +382,12 @@ class DataCollection:
         return
 
     """
-    Name       :
-    Purpose    :
-    Parameters :
-    Return     :
-    Notes      :
+    Name       : collect_more_data_prompt
+    Purpose    : To prompt the user to collect more data.
+    Parameters : None.
+    Return     : A boolean, if the user inputs Y return True, if the user inputs N return False.
+    Notes      : 
+                 The user will be continuously re-prompted until they enter a Y/y or N/n.
     """
     @staticmethod
     def collect_more_data_prompt() -> bool:
