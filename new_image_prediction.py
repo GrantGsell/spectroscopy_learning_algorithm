@@ -165,9 +165,9 @@ class ImagePrediction:
         # Prompt user for value changes
         while True:
             change_values = input('Would you like to change any of the predictions? (Y/n) ')
-            if change_values == "Y":
+            if change_values == "Y" or change_values == 'y':
                 break
-            elif change_values == "n":
+            elif change_values == "N" or change_values == 'n':
                 return prediction_dict
             else:
                 print("Error: Incorrect Input")
